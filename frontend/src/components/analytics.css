@@ -1,0 +1,202 @@
+/* Add these analytics styles to your main CSS file (App.css or index.css) */
+
+/* Analytics Dashboard Styles */
+.analytics-dashboard {
+    padding: 1rem;
+    background-color: #f9fafb;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .dashboard-title {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    margin: 0;
+    color: #111827;
+  }
+  
+  .time-range-selector {
+    display: flex;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  .time-button {
+    padding: 0.5rem 1rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s ease;
+  }
+  
+  .time-button:hover {
+    background-color: #e5e7eb;
+  }
+  
+  .time-button.active {
+    background-color: #4f46e5;
+    color: white;
+  }
+  
+  .summary-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .stat-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .stat-icon {
+    margin-right: 1rem;
+    color: #4f46e5;
+    background-color: #eff6ff;
+    padding: 8px;
+    border-radius: 8px;
+  }
+  
+  .stat-content h3 {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #6b7280;
+    font-weight: 500;
+  }
+  
+  .stat-value {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #111827;
+  }
+  
+  .analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+    gap: 1rem;
+  }
+  
+  @media (max-width: 768px) {
+    .analytics-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .chart-card {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .chart-title {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    color: #111827;
+    font-weight: 600;
+  }
+  
+  .chart-container {
+    height: 300px;
+    width: 100%;
+  }
+  
+  .custom-tooltip {
+    background-color: white;
+    border: 1px solid #ccc;
+    padding: 0.5rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .tooltip-label {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #111827;
+  }
+  
+  .no-data-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #9ca3af;
+  }
+  
+  .no-data-icon {
+    margin-bottom: 1rem;
+    color: #d1d5db;
+  }
+  /* Add these style updates to handle the new time range selector */
+
+.time-range-selector {
+    display: flex;
+    flex-wrap: wrap;
+    background-color: #f3f4f6;
+    border-radius: 8px;
+    overflow: hidden;
+    gap: 1px;
+  }
+  
+  .time-button {
+    padding: 0.5rem 0.75rem;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+  
+  .time-button:hover {
+    background-color: #e5e7eb;
+  }
+  
+  .time-button.active {
+    background-color: #4f46e5;
+    color: white;
+  }
+  
+  /* For smaller screens */
+  @media (max-width: 768px) {
+    .dashboard-header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    
+    .time-range-selector {
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    
+    .time-button {
+      flex: 1;
+      text-align: center;
+      padding: 0.5rem 0.5rem;
+      font-size: 0.7rem;
+    }
+  }
