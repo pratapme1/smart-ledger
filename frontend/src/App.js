@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
-import UploadForm from "./components/UploadForm";
-import ReceiptList from "./components/ReceiptList";
+import EnhancedUploadTab from "./components/EnhancedUploadTab";
 import Wallet from "./components/Wallet";
 import Analytics from "./components/Analytics";
 import AiInsights from "./components/AiInsights";
@@ -98,15 +97,13 @@ function AppContent({ receipts, loading, error, handleUpload, handleReceiptDelet
             <AiInsights receipts={receipts} loading={loading} />
           } />
           <Route path="/upload" element={
-            <div className="content-grid">
-              <UploadForm onUpload={handleUpload} />
-              <ReceiptList 
-                receipts={receipts} 
-                loading={loading} 
-                error={error}
-                onReceiptDeleted={handleReceiptDeleted}
-              />
-            </div>
+            <EnhancedUploadTab
+              onUpload={handleUpload}
+              receipts={receipts} 
+              loading={loading} 
+              error={error}
+              onReceiptDeleted={handleReceiptDeleted}
+            />
           } />
         </Routes>
       </main>

@@ -53,7 +53,8 @@ const ReceiptSchema = new mongoose.Schema({
     currencyEvidence: String,                 // What evidence led to currency determination
     currencyConfidence: { type: Number, default: 0 }, // Confidence level (0-1)
     notes: String,                            // Any additional information
-    uploadedAt: { type: Date, default: Date.now }
+    uploadedAt: { type: Date, default: Date.now },
+    isManualEntry: { type: Boolean, default: false } // Added to differentiate manual entries
 });
 const Receipt = mongoose.model("Receipt", ReceiptSchema);
 
@@ -635,7 +636,8 @@ app.get('/', (req, res) => {
         { path: "/delete-receipt/:id", method: "DELETE", description: "Delete a specific receipt by ID" },
         { path: "/delete-all-receipts", method: "DELETE", description: "Delete all receipts (requires ?confirm=true)" },
         { path: "/receipt-analytics", method: "GET", description: "Get spending analytics" },
-        { path: "/currency-stats", method: "GET", description: "Get statistics about currency distribution" }
+        { path: "/currency-stats", method: "GET", description: "Get statistics about currency distribution" },
+        { path: "/add-manual-receipt", method: "POST", description: "Add a manually entered receipt" }
       ],
       currencySupport: {
         note: "The server now has enhanced currency detection capabilities",
@@ -767,10 +769,10 @@ app.post('/upload-receipt', upload.single('file'), async (req, res) => {
     }
   });
   
-  // ✅ Endpoint: Get All Stored Receipts with filters
+  // ✅ Endpoint: Get All Stored Receipts with filters - UPDATED version that includes type filter
   app.get('/get-receipts', async (req, res) => {
     try {
-      const { category, startDate, endDate, merchant, minAmount, maxAmount, sortBy, limit, currency } = req.query;
+      const { category, startDate, endDate, merchant, minAmount, maxAmount, sortBy, limit, currency, type } = req.query;
       
       // Build filter object
       const filter = {};
@@ -778,6 +780,13 @@ app.post('/upload-receipt', upload.single('file'), async (req, res) => {
       if (category) filter.category = category;
       if (merchant) filter.merchant = { $regex: merchant, $options: 'i' }; // Case-insensitive search
       if (currency) filter.currency = currency.toUpperCase();
+      
+      // Add isManualEntry filter based on type parameter
+      if (type === 'scan') {
+        filter.isManualEntry = { $ne: true };
+      } else if (type === 'manual') {
+        filter.isManualEntry = true;
+      }
       
       if (startDate || endDate) {
         filter.date = {};
@@ -945,17 +954,21 @@ app.post('/upload-receipt', upload.single('file'), async (req, res) => {
       const files = fs.readdirSync(uploadsDir);
       
       // Look for files that contain the original filename
-      const matchingFiles = files.filter(file => file.includes(receipt.fileName) || file.endsWith(receipt.fileName));
-      
-      // Delete all matching files
       let deletedFiles = 0;
-      for (const file of matchingFiles) {
-        const filePath = path.join(uploadsDir, file);
-        try {
-          fs.unlinkSync(filePath);
-          deletedFiles++;
-        } catch (err) {
-          console.error(`Error deleting file ${file}:`, err);
+      
+      // Only try to delete files for non-manual entries
+      if (receipt.fileName && !receipt.isManualEntry) {
+        const matchingFiles = files.filter(file => file.includes(receipt.fileName) || file.endsWith(receipt.fileName));
+        
+        // Delete all matching files
+        for (const file of matchingFiles) {
+          const filePath = path.join(uploadsDir, file);
+          try {
+            fs.unlinkSync(filePath);
+            deletedFiles++;
+          } catch (err) {
+            console.error(`Error deleting file ${file}:`, err);
+          }
         }
       }
       
@@ -990,7 +1003,7 @@ app.post('/upload-receipt', upload.single('file'), async (req, res) => {
       // Option 1: Delete files associated with receipts
       for (const receipt of receipts) {
         try {
-          if (receipt.fileName) {
+          if (receipt.fileName && !receipt.isManualEntry) {
             // Find files that match or contain the receipt filename
             const files = fs.readdirSync(uploadDirPath);
             const matchingFiles = files.filter(file => 
@@ -1126,6 +1139,82 @@ app.post('/upload-receipt', upload.single('file'), async (req, res) => {
       res.status(500).json({ message: "❌ Error generating analytics.", error: error.message });
     }
   });
+
+  // ✅ NEW Endpoint: Add Manual Receipt
+  app.post('/add-manual-receipt', async (req, res) => {
+    try {
+      console.log("📝 Received manual receipt data");
+      
+      // Parse the manual receipt data
+      let manualData;
+      try {
+        manualData = JSON.parse(req.body.manualReceiptData);
+      } catch (parseError) {
+        console.error("❌ Error parsing manual receipt data:", parseError);
+        return res.status(400).json({ 
+          message: "Failed to parse manual receipt data. Make sure it's valid JSON.", 
+          error: parseError.message 
+        });
+      }
+      
+      console.log("📄 Manual receipt data:", manualData);
+      
+      // Validate required fields
+      if (!manualData.merchant || manualData.totalAmount === undefined) {
+        return res.status(400).json({ 
+          message: "Missing required fields. Merchant and totalAmount are required." 
+        });
+      }
+      
+      // Create a new receipt document
+      const newReceipt = new Receipt({
+        fileName: null, // No file for manual entries
+        merchant: manualData.merchant,
+        date: manualData.date,
+        category: manualData.category,
+        items: manualData.items.map(item => ({
+          name: item.name,
+          price: parseFloat(item.price) || 0,
+          quantity: parseFloat(item.quantity) || 1
+        })),
+        taxAmount: parseFloat(manualData.taxAmount) || 0,
+        subtotalAmount: calculateSubtotal(manualData.items),
+        totalAmount: parseFloat(manualData.totalAmount) || 0,
+        paymentMethod: manualData.paymentMethod,
+        currency: manualData.currency || 'USD',
+        notes: manualData.notes,
+        uploadedAt: new Date(),
+        isManualEntry: true
+      });
+      
+      // Save the receipt to the database
+      const savedReceipt = await newReceipt.save();
+      console.log("✅ Manual receipt saved with ID:", savedReceipt._id);
+      
+      // Return success response
+      res.status(201).json({
+        message: '✅ Manual receipt saved successfully',
+        receipt: savedReceipt
+      });
+    } catch (error) {
+      console.error('❌ Error saving manual receipt:', error);
+      res.status(500).json({
+        message: 'Failed to save manual receipt',
+        error: error.message
+      });
+    }
+  });
+
+  // Helper function to calculate subtotal
+  function calculateSubtotal(items) {
+    if (!items || !Array.isArray(items)) return 0;
+    
+    return items.reduce((sum, item) => {
+      const price = parseFloat(item.price) || 0;
+      const quantity = parseFloat(item.quantity) || 0;
+      return sum + (price * quantity);
+    }, 0);
+  }
   
   // ✅ Error Handling Middleware
   app.use((err, req, res, next) => {
