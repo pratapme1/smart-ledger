@@ -1141,7 +1141,7 @@ app.post('/upload-receipt', upload.single('file'), async (req, res) => {
   });
 
   // ✅ NEW Endpoint: Add Manual Receipt
-  app.post('/add-manual-receipt', async (req, res) => {
+  app.post('/add-manual-receipt', upload.none(), async (req, res) => {
     try {
       console.log("📝 Received manual receipt data");
       
