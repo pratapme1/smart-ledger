@@ -5,6 +5,7 @@ import Wallet from "./components/Wallet";
 import Analytics from "./components/Analytics";
 import AiInsights from "./components/AiInsights";
 import Header from "./components/Header";
+import InstallPWA from './components/InstallPWA';
 import "./styles.css";
 
 function App() {
@@ -65,6 +66,11 @@ function AppContent({ receipts, loading, error, handleUpload, handleReceiptDelet
   return (
     <div className="app-container">
       <Header />
+      
+      {/* Install PWA button - placed near the header */}
+      <div className="pwa-install-container">
+        <InstallPWA />
+      </div>
       
       <nav className="nav-tabs">
         <Link to="/" className={`tab-button ${getActiveTab("/")}`}>

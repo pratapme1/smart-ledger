@@ -1971,3 +1971,23 @@
     font-size: 0.75rem;
   }
 }
+
+.pwa-install-container {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+}
+
+.install-button {
+  background-color: #4CAF50;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.install-button:hover {
+  background-color: #45a049;
+}
