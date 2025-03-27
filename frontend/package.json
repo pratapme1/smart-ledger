@@ -17,12 +17,12 @@
     "recharts": "^2.15.1",
     "web-vitals": "^2.1.4"
   },
-  "scripts": {
-  "build": "node build-without-pwa.js",
+"scripts": {
+  "build": "CI=false react-scripts build",
   "start": "react-scripts start",
   "test": "react-scripts test",
   "eject": "react-scripts eject"
-  },
+},
   "eslintConfig": {
     "extends": [
       "react-app",
@@ -42,17 +42,7 @@
     ]
   },
   "devDependencies": {
-    "assert": "^2.1.0",
-    "browserify-zlib": "^0.2.0",
-    "buffer": "^6.0.3",
-    "crypto-browserify": "^3.12.1",
-    "os": "^0.1.2",
-    "path-browserify": "^1.0.1",
-    "process": "^0.11.10",
-    "react-app-rewired": "^2.2.1",
-    "stream-browserify": "^3.0.0",
-    "util": "^0.12.5",
-    "webpack": "^5.98.0",
-    "workbox-webpack-plugin": "^7.3.0"
+    "webpack": "^5.98.0"
+  
   }
 }
