@@ -20,7 +20,7 @@ function App() {
 
   const fetchReceipts = () => {
     setLoading(true);
-    fetch("http://smart-ledger-production.up.railway.app/get-receipts")
+    fetch("https://smart-ledger-production.up.railway.app/get-receipts")
       .then((res) => res.json())
       .then((data) => {
         setReceipts(data || []);

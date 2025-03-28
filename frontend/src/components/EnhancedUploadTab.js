@@ -35,7 +35,7 @@ const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDelete
       console.log("Sending form data:", formData); // Debug what's being sent
       
       // Send to the backend
-      const response = await fetch('http://smart-ledger-production.up.railway.app/add-manual-receipt', {
+      const response = await fetch('https://smart-ledger-production.up.railway.app/add-manual-receipt', {
         method: 'POST',
         body: formDataObj,
         // Do NOT set Content-Type header - the browser will set it with the proper boundary
