@@ -72,7 +72,7 @@ export default function UploadForm({ onUpload }) {
 
     try {
       const endpoint = isMultiple ? "upload-multiple-receipts" : "upload-receipt";
-      const response = await fetch(`http://localhost:5000/${endpoint}`, {
+      const response = await fetch(`http://smart-ledger-production.up.railway.app/${endpoint}`, {
         method: "POST",
         body: formData,
       });

@@ -191,7 +191,7 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
     setTimeout(async () => {
       try {
         // Ensure API URL is correct
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://smart-ledger-production.up.railway.app';
         const response = await fetch(`${apiUrl}/delete-receipt/${id}`, {
           method: 'DELETE',
           headers: {
