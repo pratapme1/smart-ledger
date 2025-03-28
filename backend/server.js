@@ -10,7 +10,7 @@ const cors = require('cors');
 
 // Initialize express app first
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8080;
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 console.log("✅ MongoDB Package Loaded Successfully");
@@ -1235,7 +1235,7 @@ app.post('/upload-receipt', upload.single('file'), async (req, res) => {
   });
   
   // ✅ Start the Server
-  app.listen(PORT, () => {
+  app.listen(PORT,'0.0.0.0', () => {
     console.log(`🚀 Server is running on port ${PORT}`);
   });
   
