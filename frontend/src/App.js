@@ -13,6 +13,14 @@ function App() {
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  // Track window width for responsive design
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     fetchReceipts();
@@ -49,14 +57,16 @@ function App() {
         error={error} 
         handleUpload={handleUpload} 
         handleReceiptDeleted={handleReceiptDeleted}
+        windowWidth={windowWidth}
       />
     </Router>
   );
 }
 
 // Separated to access useLocation hook which must be used inside Router context
-function AppContent({ receipts, loading, error, handleUpload, handleReceiptDeleted }) {
+function AppContent({ receipts, loading, error, handleUpload, handleReceiptDeleted, windowWidth }) {
   const location = useLocation();
+  const isMobile = windowWidth < 768;
   
   // Determine active tab based on current path
   const getActiveTab = (path) => {
@@ -75,32 +85,32 @@ function AppContent({ receipts, loading, error, handleUpload, handleReceiptDelet
       <nav className="nav-tabs">
         <Link to="/" className={`tab-button ${getActiveTab("/")}`}>
           <span className="tab-icon">💼</span>
-          Wallet
+          {isMobile ? "" : "Wallet"}
         </Link>
         <Link to="/analytics" className={`tab-button ${getActiveTab("/analytics")}`}>
           <span className="tab-icon">📊</span>
-          Analytics
+          {isMobile ? "" : "Analytics"}
         </Link>
         <Link to="/insights" className={`tab-button ${getActiveTab("/insights")}`}>
           <span className="tab-icon">💡</span>
-          AI Insights
+          {isMobile ? "" : "AI Insights"}
         </Link>
         <Link to="/upload" className={`tab-button ${getActiveTab("/upload")}`}>
           <span className="tab-icon">📤</span>
-          Upload
+          {isMobile ? "" : "Upload"}
         </Link>
       </nav>
       
       <main className="content">
         <Routes>
           <Route path="/" element={
-            <Wallet receipts={receipts} loading={loading} error={error} />
+            <Wallet receipts={receipts} loading={loading} error={error} isMobile={isMobile} />
           } />
           <Route path="/analytics" element={
-            <Analytics receipts={receipts} loading={loading} />
+            <Analytics receipts={receipts} loading={loading} isMobile={isMobile} />
           } />
           <Route path="/insights" element={
-            <AiInsights receipts={receipts} loading={loading} />
+            <AiInsights receipts={receipts} loading={loading} isMobile={isMobile} />
           } />
           <Route path="/upload" element={
             <EnhancedUploadTab
@@ -109,6 +119,7 @@ function AppContent({ receipts, loading, error, handleUpload, handleReceiptDelet
               loading={loading} 
               error={error}
               onReceiptDeleted={handleReceiptDeleted}
+              isMobile={isMobile}
             />
           } />
         </Routes>
