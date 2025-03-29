@@ -1,36 +1,33 @@
-// server.js
+// server.js (at the very top)
 const path = require('path');
 const dotenv = require('dotenv');
+const fs = require('fs');
 
-// Determine which .env file to load
+// Determine environment
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const envFile = `.env.${NODE_ENV}`;
+console.log(`Running in ${NODE_ENV} environment`);
 
-// Try to load environment variables from file, but don't fail if the file doesn't exist in production
-try {
-  const result = dotenv.config({ path: path.resolve(__dirname, envFile) });
-  if (result.error) {
-    // In production, we expect environment variables to be set through the platform
-    if (NODE_ENV === 'production') {
-      console.log(`⚠️ No ${envFile} file found, using environment variables from the platform`);
-    } else {
-      console.error(`❌ Error loading ${envFile}:`, result.error);
-    }
+// In production, we skip loading .env files altogether
+if (NODE_ENV !== 'production') {
+  const envFile = `.env.${NODE_ENV}`;
+  const envPath = path.resolve(__dirname, envFile);
+  
+  // Check if file exists before trying to load it
+  if (fs.existsSync(envPath)) {
+    console.log(`Loading environment from ${envFile}`);
+    dotenv.config({ path: envPath });
   } else {
-    console.log(`✅ Loaded environment from ${envFile} for ${NODE_ENV} mode`);
+    console.error(`❌ Environment file ${envFile} not found!`);
+    process.exit(1);
   }
-} catch (error) {
-  if (NODE_ENV === 'production') {
-    console.log(`⚠️ No ${envFile} file found, using environment variables from the platform`);
-  } else {
-    console.error(`❌ Error loading environment variables:`, error);
-  }
+} else {
+  console.log('Production environment detected, using platform environment variables');
 }
 
+// Rest of your imports
 const express = require('express');
 const cors = require('cors');
 const passport = require('passport');
-const fs = require('fs');
 
 // Create Express app
 const app = express();
@@ -46,6 +43,19 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir);
   console.log("✅ Uploads directory created");
+}
+
+// Temporary debug endpoint (REMOVE IN PRODUCTION)
+if (NODE_ENV === 'production') {
+  app.get('/debug-env', (req, res) => {
+    res.json({
+      NODE_ENV: process.env.NODE_ENV,
+      MONGODB_URI_EXISTS: !!process.env.MONGODB_URI,
+      JWT_SECRET_EXISTS: !!process.env.JWT_SECRET,
+      PORT: process.env.PORT,
+      // Don't log actual values of sensitive variables
+    });
+  });
 }
 
 // Database connection
