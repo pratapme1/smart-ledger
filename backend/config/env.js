@@ -1,32 +1,36 @@
 // config/env.js
 const path = require('path');
-const fs = require('fs');
 const dotenv = require('dotenv');
+const fs = require('fs');
 
-// Determine which .env file to load
-const envFile = process.env.NODE_ENV === 'production' 
-  ? '.env.production' 
-  : '.env.development';
+// Determine environment
+const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Path to env file
-const envPath = path.resolve(process.cwd(), envFile);
-
-// Check if the file exists
-if (!fs.existsSync(envPath)) {
-  console.error(`❌ Environment file ${envFile} not found!`);
-  process.exit(1);
+// Only attempt to load .env file in non-production environments
+if (NODE_ENV !== 'production') {
+  const envFile = `.env.${NODE_ENV}`;
+  const envPath = path.resolve(process.cwd(), envFile);
+  
+  // Check if file exists before trying to load it
+  if (fs.existsSync(envPath)) {
+    const result = dotenv.config({ path: envPath });
+    if (result.error) {
+      console.error(`❌ Error loading ${envFile}:`, result.error);
+    } else {
+      console.log(`✅ Loaded environment from ${envFile} for ${NODE_ENV} mode`);
+    }
+  } else {
+    console.error(`❌ Environment file ${envFile} not found!`);
+    // Don't exit in production
+    if (NODE_ENV !== 'production') {
+      process.exit(1);
+    }
+  }
+} else {
+  console.log('Production environment detected, using platform environment variables');
 }
 
-// Load env vars from the appropriate file
-const result = dotenv.config({ path: envPath });
-
-if (result.error) {
-  console.error(`❌ Error loading environment variables:`, result.error);
-  process.exit(1);
-}
-
-console.log(`✅ Loaded environment from ${envFile} for ${process.env.NODE_ENV} mode`);
-
+// Export environment variables
 module.exports = {
   PORT: process.env.PORT || 8080,
   NODE_ENV: process.env.NODE_ENV || 'development',
@@ -35,10 +39,8 @@ module.exports = {
   JWT_EXPIRE: process.env.JWT_EXPIRE || '1d',
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
-  GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL,
   GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
   GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
-  GITHUB_CALLBACK_URL: process.env.GITHUB_CALLBACK_URL,
   EMAIL_USERNAME: process.env.EMAIL_USERNAME,
   EMAIL_PASSWORD: process.env.EMAIL_PASSWORD,
   FRONTEND_URL: process.env.FRONTEND_URL,
