@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FcGoogle } from 'react-icons/fc';
 import { FaGithub, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import './Login.css';
 
@@ -16,9 +17,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Get auth context functions and state
+  const { login } = useContext(AuthContext);
 
-  // Get the redirect path from location state or default to dashboard
-  const from = location.state?.from || '/dashboard';
+  // Get the redirect path from location state or default to wallet
+  const from = location.state?.from || '/wallet';
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -38,7 +42,18 @@ const Login = () => {
 
     try {
       const { email, password, rememberMe } = formData;
+      
+      // Validate input
+      if (!email || !password) {
+        throw new Error('Please enter both email and password');
+      }
+      
       const response = await api.auth.login({ email, password });
+      
+      // Verify that we have the required data
+      if (!response || !response.token) {
+        throw new Error('Invalid response from server. Missing token.');
+      }
       
       // Store token and user info
       localStorage.setItem('token', response.token);
@@ -51,16 +66,38 @@ const Login = () => {
         localStorage.setItem('rememberMe', 'true');
       }
 
+      // Configure default headers for future API requests
+      if (api.setAuthToken) {
+        api.setAuthToken(response.token);
+      }
+
       toast.success('Login successful!');
-      navigate(from);
+      
+      // DIRECT NAVIGATION - More reliable than React Router's navigate
+      setTimeout(() => {
+        console.log("Login: Direct navigation to wallet page");
+        window.location.href = '/wallet';
+      }, 500);
     } catch (error) {
-      toast.error(error.message || 'Login failed. Please check your credentials.');
+      console.error('Login error:', error);
+      toast.error(error.response?.data?.message || error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
   };
 
   const handleSocialLogin = (provider) => {
+    // Store the intended redirect path before navigating away
+    sessionStorage.setItem('redirectAfterLogin', from);
+    
+    // Save form data in case user returns without completing social login
+    if (formData.email) {
+      sessionStorage.setItem('loginEmail', formData.email);
+    }
+    
+    console.log(`Login: Starting ${provider} social login`);
+    console.log("Login: Storing redirect path:", from);
+    
     window.location.href = api.auth.socialLogin[provider];
   };
 
@@ -145,6 +182,7 @@ const Login = () => {
             type="button" 
             className="social-button google-button"
             onClick={() => handleSocialLogin('google')}
+            disabled={loading}
           >
             <FcGoogle />
             <span>Google</span>
@@ -153,6 +191,7 @@ const Login = () => {
             type="button" 
             className="social-button github-button"
             onClick={() => handleSocialLogin('github')}
+            disabled={loading}
           >
             <FaGithub />
             <span>GitHub</span>

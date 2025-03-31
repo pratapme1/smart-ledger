@@ -2,15 +2,33 @@
 import axios from 'axios';
 import { AUTH_CONFIG } from '../config';
 
-// Use environment variables or fallback to localhost
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
 const BASE_URL = process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace('/api', '') : 'http://localhost:8080';
 
-// Create axios instance
+// Create axios instance with credentials
 const apiClient = axios.create({
   baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' }
+  headers: { 'Content-Type': 'application/json' },
+  withCredentials: true // Enable sending cookies with requests
 });
+
+// Set auth token for future requests
+const setAuthToken = (token) => {
+  if (token) {
+    apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log("API: Auth token set in headers");
+  } else {
+    delete apiClient.defaults.headers.common['Authorization'];
+    console.log("API: Auth token removed from headers");
+  }
+};
+
+// Initialize with token from localStorage if it exists
+const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
+if (token) {
+  setAuthToken(token);
+  console.log("API: Initial auth token set from localStorage");
+}
 
 // Request interceptor to add token to requests
 apiClient.interceptors.request.use(
@@ -22,6 +40,42 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// Response interceptor for global error handling
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.error('API Error:', error);
+    
+    // Handle specific error scenarios
+    if (error.response) {
+      switch (error.response.status) {
+        case 401:
+          // Token is invalid or expired
+          localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+          localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+          // Only redirect if not already on login page
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          break;
+        case 403:
+          console.error('Forbidden: You do not have permission');
+          break;
+        case 404:
+          console.error('Not Found');
+          break;
+        case 500:
+          console.error('Server Error');
+          break;
+      }
+    } else if (error.request) {
+      // Request was made but no response received
+      console.error('Network Error: No response received from server');
+    }
+    return Promise.reject(error);
+  }
 );
 
 // Authentication API calls
@@ -41,9 +95,21 @@ const auth = {
   login: async (credentials) => {
     try {
       const response = await apiClient.post('/auth/login', credentials);
+      
+      // Set token in headers for future requests
+      if (response.data && response.data.token) {
+        localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, response.data.token);
+        setAuthToken(response.data.token);
+      }
+      
       return response.data;
     } catch (error) {
-      console.error('Login Error:', error.response?.data || error.message);
+      console.error('Login Error:', error);
+      if (error.response) {
+        console.error('Error response:', error.response.data);
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+      }
       throw error;
     }
   },
@@ -55,6 +121,17 @@ const auth = {
       return response.data;
     } catch (error) {
       console.error('Get User Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Verify token validity
+  verifyToken: async (token) => {
+    try {
+      const response = await apiClient.post('/auth/verify-token', { token });
+      return response.data;
+    } catch (error) {
+      console.error('Token Verification Error:', error.response?.data || error.message);
       throw error;
     }
   },
@@ -85,18 +162,39 @@ const auth = {
   logout: () => {
     localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
     localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+    // Remove token from headers
+    setAuthToken(null);
+    // Redirect to login page
+    window.location.href = '/login';
   },
   
-  // Social login URLs
+  // Social login URLs - Updated to use consistent OAuth callback path
   socialLogin: {
-    google: `${API_URL}/auth/google`,
-    github: `${API_URL}/auth/github`
+    google: `${BASE_URL}/api/auth/google`,
+    github: `${BASE_URL}/api/auth/github`
   },
   
   // Process OAuth callback
   processOAuthCallback: () => {
+    console.log("API: Processing OAuth callback");
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('token');
+    const token = urlParams.get('token');
+    const error = urlParams.get('error');
+    
+    if (error) {
+      console.error('API: OAuth Error:', decodeURIComponent(error));
+      return null;
+    }
+    
+    if (token) {
+      console.log("API: OAuth token received, storing");
+      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+      setAuthToken(token);
+      return token;
+    }
+    
+    console.warn("API: No token found in OAuth callback");
+    return null;
   }
 };
 
@@ -105,7 +203,8 @@ const receipts = {
   // Upload single receipt
   uploadReceipt: async (formData) => {
     try {
-      const response = await apiClient.post(`${BASE_URL}/upload-receipt`, formData, {
+      // Use apiClient with API prefix for consistent routing
+      const response = await apiClient.post('/upload-receipt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       return response.data;
@@ -118,7 +217,7 @@ const receipts = {
   // Upload multiple receipts
   uploadMultipleReceipts: async (formData) => {
     try {
-      const response = await apiClient.post(`${BASE_URL}/upload-multiple-receipts`, formData, {
+      const response = await apiClient.post('/upload-multiple-receipts', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       return response.data;
@@ -134,7 +233,7 @@ const receipts = {
       const formData = new FormData();
       formData.append('manualReceiptData', JSON.stringify(receiptData));
       
-      const response = await apiClient.post(`${BASE_URL}/add-manual-receipt`, formData);
+      const response = await apiClient.post('/add-manual-receipt', formData);
       return response.data;
     } catch (error) {
       console.error('Add Manual Receipt Error:', error.response?.data || error.message);
@@ -154,7 +253,7 @@ const receipts = {
       
       const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
       
-      const response = await apiClient.get(`${BASE_URL}/get-receipts${queryString}`);
+      const response = await apiClient.get(`/get-receipts${queryString}`);
       return response.data;
     } catch (error) {
       console.error('Get Receipts Error:', error.response?.data || error.message);
@@ -165,7 +264,7 @@ const receipts = {
   // Delete a receipt
   deleteReceipt: async (id) => {
     try {
-      const response = await apiClient.delete(`${BASE_URL}/delete-receipt/${id}`);
+      const response = await apiClient.delete(`/delete-receipt/${id}`);
       return response.data;
     } catch (error) {
       console.error('Delete Receipt Error:', error.response?.data || error.message);
@@ -176,6 +275,7 @@ const receipts = {
 
 // Export API
 const api = {
+  setAuthToken,
   auth,
   receipts
 };

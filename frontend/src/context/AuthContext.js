@@ -1,254 +1,217 @@
+// src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
 import api from '../services/api';
+import { AUTH_CONFIG } from '../config';
 
-// Create the Auth Context
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   
-  const navigate = useNavigate();
-  
-  // Check if token is expired
-  const isTokenExpired = (token) => {
-    if (!token) return true;
-    
-    try {
-      const decoded = jwtDecode(token);
-      const isExpired = decoded.exp < Date.now() / 1000;
-      
-      console.log('Token expiration check:', {
-        current: Date.now() / 1000,
-        expiry: decoded.exp,
-        isExpired
-      });
-      
-      return isExpired;
-    } catch (error) {
-      console.error('Token decoding error:', error);
-      return true;
-    }
-  };
-  
-  // Load user from token
+  // Initialize authentication state
   useEffect(() => {
-    const loadUser = async () => {
-      console.log('Loading user - Token:', token);
-      
-      if (token && !isTokenExpired(token)) {
+    const checkAuth = async () => {
+      try {
+        // Check for token in localStorage
+        const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
+        const storedUser = localStorage.getItem(AUTH_CONFIG.USER_KEY);
+        
+        console.log("AuthContext init:", { 
+          tokenExists: !!token, 
+          storedUserExists: !!storedUser,
+          tokenKey: AUTH_CONFIG.TOKEN_KEY,
+          userKey: AUTH_CONFIG.USER_KEY
+        });
+        
+        if (!token) {
+          setIsAuthenticated(false);
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+        
+        // Set token in API headers
+        api.setAuthToken(token);
+        
+        // Set authenticated state from localStorage first for faster UI response
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setUser(parsedUser);
+          setIsAuthenticated(true);
+          console.log("Set initial auth state from localStorage:", { user: parsedUser.email });
+        }
+        
+        // Verify with server regardless of stored data
         try {
-          setLoading(true);
-          
-          // Use new method that doesn't require token parameter
+          console.log("Verifying token with server...");
           const userData = await api.auth.getUser();
           
-          console.log('User data loaded:', userData);
-          setUser(userData.user);
-        } catch (err) {
-          console.error('Error loading user:', err);
-          
-          // Detailed error logging
-          if (err.response) {
-            console.error('Error response:', err.response.data);
+          if (userData && userData.user) {
+            console.log("Server verification successful:", userData.user);
+            setUser(userData.user);
+            setIsAuthenticated(true);
+            localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(userData.user));
+          } else {
+            console.error("Server returned invalid user data");
+            throw new Error('Invalid user data from server');
           }
+        } catch (error) {
+          console.error('Authentication verification failed:', error);
           
-          // Clear authentication state on error
-          localStorage.removeItem('token');
-          setToken(null);
-          setUser(null);
-          
-          // Navigate to login if user loading fails
-          navigate('/login');
-        } finally {
-          setLoading(false);
+          // Only clear auth data if it's an authentication error (401)
+          if (error.response && error.response.status === 401) {
+            console.log("Clearing invalid auth data due to 401");
+            localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+            localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+            setUser(null);
+            setIsAuthenticated(false);
+          } else {
+            // For other errors (e.g., network), keep using localStorage data
+            console.log("Keeping localStorage auth data due to non-401 error");
+            // We already set the state from localStorage above
+          }
         }
-      } else {
-        if (token) {
-          console.log('Token is expired or invalid');
-          localStorage.removeItem('token');
-          setToken(null);
-        }
+      } finally {
         setLoading(false);
       }
     };
     
-    loadUser();
-  }, [token, navigate]);
+    checkAuth();
+  }, []);
   
-  // Register user
-  const register = async (formData) => {
+  // Login function
+  const login = async (credentials) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
+      const response = await api.auth.login(credentials);
       
-      console.log('Registering user:', formData);
-      
-      const response = await api.auth.register(formData);
-      
-      console.log('Registration response:', response);
-      
-      if (!response.token) {
-        throw new Error('No token received after registration');
+      if (!response || !response.token) {
+        throw new Error('Invalid response from server');
       }
       
-      localStorage.setItem('token', response.token);
-      setToken(response.token);
-      setUser(response.user);
+      const { token, user } = response;
       
-      // Navigate to dashboard after successful registration
-      navigate('/dashboard');
+      // Store authentication data
+      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
       
-      return response;
-    } catch (err) {
-      console.error('Registration error:', err);
+      if (user) {
+        localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(user));
+        setUser(user);
+      }
       
-      // More detailed error handling
-      const errorMessage = err.response?.data?.message || err.message || 'Registration failed';
-      setError(errorMessage);
+      setIsAuthenticated(true);
       
-      throw err;
+      // Set token in API headers
+      api.setAuthToken(token);
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Login failed:', error);
+      return { 
+        success: false,
+        error: error.response?.data?.message || error.message || 'Login failed'
+      };
     } finally {
       setLoading(false);
     }
   };
   
-  // Login user
-  const login = async (formData) => {
+  // Register function
+  const register = async (userData) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
+      const response = await api.auth.register(userData);
       
-      console.log('Logging in user:', formData.email);
-      
-      const response = await api.auth.login(formData);
-      
-      console.log('Login response:', response);
-      
-      if (!response.token) {
-        throw new Error('No token received after login');
+      if (response.token) {
+        localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, response.token);
+        
+        if (response.user) {
+          localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(response.user));
+          setUser(response.user);
+        }
+        
+        setIsAuthenticated(true);
+        api.setAuthToken(response.token);
       }
       
-      localStorage.setItem('token', response.token);
-      setToken(response.token);
-      setUser(response.user);
-      
-      // Navigate to dashboard after successful login
-      navigate('/dashboard');
-      
-      return response;
-    } catch (err) {
-      console.error('Login error:', err);
-      
-      // More detailed error handling
-      const errorMessage = err.response?.data?.message || err.message || 'Login failed';
-      setError(errorMessage);
-      
-      throw err;
+      return { success: true };
+    } catch (error) {
+      console.error('Registration failed:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message || 'Registration failed'
+      };
     } finally {
       setLoading(false);
     }
   };
   
-  // Logout user
+  // Logout function
   const logout = () => {
-    console.log('Logging out user');
+    // Clear auth data
+    localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
+    localStorage.removeItem(AUTH_CONFIG.USER_KEY);
     
-    localStorage.removeItem('token');
-    setToken(null);
+    // Update state
     setUser(null);
+    setIsAuthenticated(false);
     
-    // Navigate to login page
-    navigate('/login');
+    // Clear token from API headers
+    api.setAuthToken(null);
   };
   
-  // Handle social login callback
-  const handleSocialLoginCallback = () => {
-    const token = api.auth.processOAuthCallback();
+  // Handle OAuth callback - UPDATED for more reliable operation
+  const handleOAuthCallback = async (token) => {
+    console.log("handleOAuthCallback received token:", !!token);
     
-    console.log('Social login callback - Token:', token);
-    
-    if (token) {
-      localStorage.setItem('token', token);
-      setToken(token);
-      return true;
+    if (!token) {
+      console.error("No token provided to handleOAuthCallback");
+      return false;
     }
-    return false;
-  };
-  
-  // Request password reset
-  const forgotPassword = async (email) => {
+    
     try {
-      setLoading(true);
-      setError(null);
+      // 1. Store token first
+      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
       
-      console.log('Requesting password reset for:', email);
+      // 2. Set token in API headers
+      api.setAuthToken(token);
       
-      const response = await api.auth.forgotPassword(email);
+      // 3. Set authenticated state (even before user data)
+      setIsAuthenticated(true);
       
-      console.log('Password reset response:', response);
+      // 4. Fetch user data
+      console.log("Fetching user data with token...");
+      const userData = await api.auth.getUser();
       
-      return response;
-    } catch (err) {
-      console.error('Forgot password error:', err);
-      
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to send reset email';
-      setError(errorMessage);
-      
-      throw err;
-    } finally {
-      setLoading(false);
+      if (userData && userData.user) {
+        // Store user data and update state
+        console.log("User data received:", userData.user);
+        localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(userData.user));
+        setUser(userData.user);
+        return true;
+      } else {
+        throw new Error('Invalid user data from server');
+      }
+    } catch (error) {
+      console.error('OAuth callback processing error:', error);
+      return false;
     }
   };
   
-  // Reset password
-  const resetPassword = async (token, password) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      console.log('Resetting password');
-      
-      const response = await api.auth.resetPassword(token, password);
-      
-      console.log('Password reset response:', response);
-      
-      return response;
-    } catch (err) {
-      console.error('Reset password error:', err);
-      
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to reset password';
-      setError(errorMessage);
-      
-      throw err;
-    } finally {
-      setLoading(false);
-    }
+  // Provide auth context
+  const value = {
+    user,
+    isAuthenticated,
+    loading,
+    login,
+    register,
+    logout,
+    handleOAuthCallback
   };
   
-  // Provide all auth values and functions
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        token,
-        loading,
-        error,
-        register,
-        login,
-        logout,
-        forgotPassword,
-        resetPassword,
-        handleSocialLoginCallback,
-        isAuthenticated: !!user,
-        setError
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
+
+export default AuthProvider;

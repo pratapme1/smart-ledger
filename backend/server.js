@@ -28,15 +28,60 @@ if (NODE_ENV !== 'production') {
 const express = require('express');
 const cors = require('cors');
 const passport = require('passport');
+const session = require('express-session'); // Add this for OAuth
 
 // Create Express app
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Middleware
-app.use(cors());
+// Define frontend URL
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+console.log(`🔒 CORS allowing origin: ${FRONTEND_URL}`);
+
+// Configure CORS with enhanced options
+const corsOptions = {
+  origin: FRONTEND_URL,
+  credentials: true,
+  methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
+  optionsSuccessStatus: 200
+};
+
+// Apply CORS middleware with proper options
+app.use(cors(corsOptions));
+
+// Add a middleware to explicitly set CORS headers for all routes
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+
+// Session configuration (needed for OAuth)
+app.use(session({
+  secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: NODE_ENV === 'production', // Use secure cookies in production
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
+// Initialize Passport
 app.use(passport.initialize());
+app.use(passport.session()); // Needed for OAuth strategies
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(__dirname, 'uploads');
@@ -46,13 +91,19 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Temporary debug endpoint (REMOVE IN PRODUCTION)
-if (NODE_ENV === 'production') {
+if (NODE_ENV !== 'production') {
   app.get('/debug-env', (req, res) => {
     res.json({
       NODE_ENV: process.env.NODE_ENV,
       MONGODB_URI_EXISTS: !!process.env.MONGODB_URI,
       JWT_SECRET_EXISTS: !!process.env.JWT_SECRET,
       PORT: process.env.PORT,
+      FRONTEND_URL: process.env.FRONTEND_URL,
+      GOOGLE_CLIENT_ID_EXISTS: !!process.env.GOOGLE_CLIENT_ID,
+      GOOGLE_CLIENT_SECRET_EXISTS: !!process.env.GOOGLE_CLIENT_SECRET,
+      GITHUB_CLIENT_ID_EXISTS: !!process.env.GITHUB_CLIENT_ID,
+      GITHUB_CLIENT_SECRET_EXISTS: !!process.env.GITHUB_CLIENT_SECRET,
+      GOOGLE_CALLBACK_URL: process.env.GOOGLE_CALLBACK_URL,
       // Don't log actual values of sensitive variables
     });
   });
@@ -66,7 +117,18 @@ require('./config/passport')(passport);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/', require('./routes/receipts'));
+
+// Mount receipt routes under /api prefix
+app.use('/api', require('./routes/receipts'));
+
+// Simple root route for API health check
+app.get('/', (req, res) => {
+  res.json({
+    message: "Smart Ledger API is running",
+    version: "1.0.0",
+    status: "active"
+  });
+});
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
@@ -87,6 +149,23 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🌐 CORS allowing origin: ${FRONTEND_URL}`);
+  console.log(`📡 API endpoints available at: http://localhost:${PORT}/api`);
+  
+  // Log OAuth configuration status
+  if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    console.log('✅ Google OAuth is configured');
+    console.log(`📡 Google callback URL: ${process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback'}`);
+  } else {
+    console.warn('⚠️ Google OAuth is not configured');
+  }
+  
+  if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+    console.log('✅ GitHub OAuth is configured');
+    console.log(`📡 GitHub callback URL: ${process.env.GITHUB_CALLBACK_URL || '/api/auth/github/callback'}`);
+  } else {
+    console.warn('⚠️ GitHub OAuth is not configured');
+  }
 });
 
 // Handle graceful shutdown

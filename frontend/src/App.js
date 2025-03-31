@@ -44,7 +44,7 @@ function MainApp() {
   const location = useLocation();
   
   // Get authentication state from context
-  const { isAuthenticated, token } = useContext(AuthContext);
+  const { isAuthenticated, user, logout } = useContext(AuthContext);
 
   // Track window width for responsive design
   useEffect(() => {
@@ -54,17 +54,17 @@ function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && user) {
       fetchReceipts();
     } else {
       // Clear receipts when not authenticated
       setReceipts([]);
       setLoading(false);
     }
-  }, [refreshTrigger, isAuthenticated]);
+  }, [refreshTrigger, isAuthenticated, user]);
 
   const fetchReceipts = async () => {
-    if (!isAuthenticated || !token) {
+    if (!isAuthenticated) {
       setReceipts([]);
       setLoading(false);
       return;
@@ -72,8 +72,8 @@ function MainApp() {
     
     setLoading(true);
     try {
-      // Use the API service to fetch receipts with token from context
-      const data = await api.receipts.getReceipts(token);
+      // Use the API service to fetch receipts
+      const data = await api.receipts.getReceipts();
       setReceipts(data || []);
       setError(null);
     } catch (err) {
@@ -82,6 +82,8 @@ function MainApp() {
       // Handle authentication errors
       if (err.response && err.response.status === 401) {
         setError("Authentication failed. Please log in again.");
+        // Automatically logout on 401 errors
+        logout();
       } else {
         setError("Failed to fetch receipts");
       }
@@ -103,6 +105,11 @@ function MainApp() {
   
   // Determine active tab based on current path
   const getActiveTab = (path) => {
+    // Make dashboard active for both /dashboard and /wallet routes
+    if (path === "/dashboard" && 
+        (location.pathname === "/dashboard" || location.pathname === "/wallet")) {
+      return "active";
+    }
     return location.pathname === path ? "active" : "";
   };
 
@@ -126,7 +133,7 @@ function MainApp() {
       {/* Only show navigation tabs for authenticated users and non-auth routes */}
       {!isAuthRoute && isAuthenticated && (
         <nav className="nav-tabs">
-          <Link to="/dashboard" className={`tab-button ${getActiveTab("/dashboard")}`}>
+          <Link to="/wallet" className={`tab-button ${getActiveTab("/dashboard")}`}>
             <span className="tab-icon">💼</span>
             {isMobile ? "" : "Wallet"}
           </Link>
@@ -148,17 +155,36 @@ function MainApp() {
       <main className="content">
         <Routes>
           {/* Auth Routes (Public) */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={
+            isAuthenticated ? <Navigate to="/wallet" replace /> : <Login />
+          } />
+          <Route path="/register" element={
+            isAuthenticated ? <Navigate to="/wallet" replace /> : <Register />
+          } />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+          
+          {/* OAuth Callback Route - Use the existing AuthCallback component */}
           <Route path="/auth-callback" element={<AuthCallback />} />
           
           {/* Protected Routes */}
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={
-              <Wallet receipts={receipts} loading={loading} error={error} isMobile={isMobile} />
+            {/* Add wallet route that displays the Wallet component */}
+            <Route path="/wallet" element={
+              <Wallet 
+                receipts={receipts} 
+                loading={loading} 
+                error={error} 
+                isMobile={isMobile} 
+                onRefresh={() => setRefreshTrigger(prev => prev + 1)}
+              />
             } />
+            
+            {/* Keep dashboard route for backward compatibility */}
+            <Route path="/dashboard" element={
+              <Navigate to="/wallet" replace />
+            } />
+            
             <Route path="/analytics" element={
               <Analytics receipts={receipts} loading={loading} isMobile={isMobile} />
             } />
@@ -177,15 +203,15 @@ function MainApp() {
             } />
           </Route>
           
-          {/* Default Route - Redirect to dashboard if authenticated, otherwise login */}
+          {/* Default Route - Redirect to wallet if authenticated, otherwise login */}
           <Route path="/" element={
             isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/wallet" replace /> : 
               <Navigate to="/login" replace />
           } />
           <Route path="*" element={
             isAuthenticated ? 
-              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/wallet" replace /> : 
               <Navigate to="/login" replace />
           } />
         </Routes>
