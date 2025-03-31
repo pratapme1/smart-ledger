@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Receipt, Clock, Filter, Trash2, FileText, Search, CreditCard, AlertTriangle, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import React, { useState, useEffect, useContext } from 'react';
+import { Receipt, Clock, Filter, Trash2, FileText, Search, CreditCard, AlertTriangle, ChevronDown, ChevronUp, Check, Lock } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currencyUtils';
+import { AuthContext } from '../context/AuthContext';
+import { toast } from 'react-toastify';
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -19,13 +21,20 @@ const formatReceiptName = (receipt) => {
   return `${category} - ${date}`;
 };
 
-const ReceiptCard = ({ receipt, index, onDelete }) => {
+const ReceiptCard = ({ receipt, index, onDelete, isAuthenticated }) => {
   const [expanded, setExpanded] = useState(false);
   const currencySymbol = getCurrencySymbol(receipt.currency || 'USD');
   const formattedName = formatReceiptName(receipt);
 
   const handleDelete = (e) => {
     e.stopPropagation();
+    
+    // Check authentication before allowing deletion
+    if (!isAuthenticated) {
+      toast.error('You must be logged in to delete receipts');
+      return;
+    }
+    
     if (window.confirm(`Are you sure you want to delete this receipt?`)) {
       onDelete(receipt._id);
     }
@@ -56,6 +65,8 @@ const ReceiptCard = ({ receipt, index, onDelete }) => {
               className="receipt-delete-btn" 
               onClick={handleDelete}
               aria-label="Delete receipt"
+              disabled={!isAuthenticated}
+              title={!isAuthenticated ? 'Login required to delete' : 'Delete receipt'}
             >
               <Trash2 size={16} />
             </button>
@@ -123,6 +134,7 @@ const ReceiptCard = ({ receipt, index, onDelete }) => {
 };
 
 export default function ReceiptList({ receipts, loading, error, onReceiptDeleted }) {
+  const { isAuthenticated, token } = useContext(AuthContext);
   const [filteredReceipts, setFilteredReceipts] = useState([]);
   const [sortOption, setSortOption] = useState('date-desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -184,20 +196,32 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
   }, [deleteStatus]);
 
   const handleDelete = async (id) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast.error('Authentication required. Please log in to delete receipts.');
+      return;
+    }
+    
     // First show the popup
     setDeleteStatus({ loading: true, error: null, success: false });
     
     // Delay API call slightly to ensure popup is visible
     setTimeout(async () => {
       try {
-        // Ensure API URL is correct
+        // Get API URL from environment variables
         const apiUrl = process.env.REACT_APP_API_URL || 'https://smart-ledger-production.up.railway.app';
         const response = await fetch(`${apiUrl}/delete-receipt/${id}`, {
           method: 'DELETE',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}` // Include auth token
           }
         });
+        
+        // Handle authentication errors
+        if (response.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        }
         
         const data = await response.json();
         
@@ -210,6 +234,7 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
         // Keep the loading state for at least 1.5 seconds for better user experience
         setTimeout(() => {
           setDeleteStatus({ loading: false, error: null, success: true });
+          toast.success('Receipt deleted successfully!');
           
           // Call the parent component's callback to refresh the receipts list
           if (onReceiptDeleted) {
@@ -223,9 +248,54 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
         // Keep the loading state for at least 1 second before showing the error
         setTimeout(() => {
           setDeleteStatus({ loading: false, error: err.message, success: false });
+          toast.error(err.message);
         }, 1000);
       }
     }, 500); // Small delay before starting API call
+  };
+
+  // If there are no receipts and we're not in a loading/error state, 
+  // show a different message based on authentication
+  const renderEmptyState = () => {
+    if (searchQuery || filterCategory !== 'all') {
+      return (
+        <div className="empty-state">
+          <div className="empty-icon">
+            <Receipt size={40} />
+          </div>
+          <p className="empty-text">No matching receipts found</p>
+          <p className="empty-subtext">Try changing your search or filter criteria</p>
+        </div>
+      );
+    }
+    
+    if (!isAuthenticated) {
+      return (
+        <div className="empty-state">
+          <div className="empty-icon">
+            <Lock size={40} />
+          </div>
+          <p className="empty-text">Authentication Required</p>
+          <p className="empty-subtext">Please log in to view your receipts</p>
+          <button 
+            className="button button-primary"
+            onClick={() => window.location.href = '/login'}
+          >
+            Log In
+          </button>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">
+          <Receipt size={40} />
+        </div>
+        <p className="empty-text">No receipts found</p>
+        <p className="empty-subtext">Upload a receipt to get started</p>
+      </div>
+    );
   };
 
   return (
@@ -324,22 +394,7 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
           <p>Loading receipts...</p>
         </div>
       ) : filteredReceipts.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">
-            <Receipt size={40} />
-          </div>
-          {searchQuery || filterCategory !== 'all' ? (
-            <>
-              <p className="empty-text">No matching receipts found</p>
-              <p className="empty-subtext">Try changing your search or filter criteria</p>
-            </>
-          ) : (
-            <>
-              <p className="empty-text">No receipts found</p>
-              <p className="empty-subtext">Upload a receipt to get started</p>
-            </>
-          )}
-        </div>
+        renderEmptyState()
       ) : (
         <div className="receipts-scrollable-list">
           {filteredReceipts.map((receipt, index) => (
@@ -348,6 +403,7 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
               receipt={receipt} 
               index={index} 
               onDelete={handleDelete}
+              isAuthenticated={isAuthenticated}
             />
           ))}
         </div>

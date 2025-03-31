@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useLocation } from "react-router-dom";
+import { useState, useEffect, useContext } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Existing Components
 import EnhancedUploadTab from "./components/EnhancedUploadTab";
 import Wallet from "./components/Wallet";
 import Analytics from "./components/Analytics";
@@ -8,12 +12,39 @@ import Header from "./components/Header";
 import InstallPWA from './components/InstallPWA';
 import "./styles.css";
 
+// Auth Components
+import { AuthProvider, AuthContext } from './context/AuthContext';
+import Login from './components/auth/login';
+import Register from './components/auth/Register';
+import ForgotPassword from './components/auth/ForgotPassword';
+import ResetPassword from './components/auth/ResetPassword';
+import AuthCallback from './components/auth/AuthCallback';
+import ProtectedRoute from './components/ProtectedRoute';
+
+// API service
+import api from './services/api';
+
 function App() {
+  return (
+    <Router>
+      <AuthProvider>
+        <MainApp />
+      </AuthProvider>
+    </Router>
+  );
+}
+
+// Main app component separated to access hooks
+function MainApp() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [receipts, setReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const location = useLocation();
+  
+  // Get authentication state from context
+  const { isAuthenticated, token } = useContext(AuthContext);
 
   // Track window width for responsive design
   useEffect(() => {
@@ -23,22 +54,40 @@ function App() {
   }, []);
 
   useEffect(() => {
-    fetchReceipts();
-  }, [refreshTrigger]);
+    if (isAuthenticated) {
+      fetchReceipts();
+    } else {
+      // Clear receipts when not authenticated
+      setReceipts([]);
+      setLoading(false);
+    }
+  }, [refreshTrigger, isAuthenticated]);
 
-  const fetchReceipts = () => {
+  const fetchReceipts = async () => {
+    if (!isAuthenticated || !token) {
+      setReceipts([]);
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
-    fetch("https://smart-ledger-production.up.railway.app/get-receipts")
-      .then((res) => res.json())
-      .then((data) => {
-        setReceipts(data || []);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to fetch receipts:", err);
+    try {
+      // Use the API service to fetch receipts with token from context
+      const data = await api.receipts.getReceipts(token);
+      setReceipts(data || []);
+      setError(null);
+    } catch (err) {
+      console.error("Failed to fetch receipts:", err);
+      
+      // Handle authentication errors
+      if (err.response && err.response.status === 401) {
+        setError("Authentication failed. Please log in again.");
+      } else {
         setError("Failed to fetch receipts");
-        setLoading(false);
-      });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpload = () => {
@@ -49,29 +98,21 @@ function App() {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  return (
-    <Router>
-      <AppContent 
-        receipts={receipts} 
-        loading={loading} 
-        error={error} 
-        handleUpload={handleUpload} 
-        handleReceiptDeleted={handleReceiptDeleted}
-        windowWidth={windowWidth}
-      />
-    </Router>
-  );
-}
-
-// Separated to access useLocation hook which must be used inside Router context
-function AppContent({ receipts, loading, error, handleUpload, handleReceiptDeleted, windowWidth }) {
-  const location = useLocation();
+  // Determine if it's a mobile device
   const isMobile = windowWidth < 768;
   
   // Determine active tab based on current path
   const getActiveTab = (path) => {
     return location.pathname === path ? "active" : "";
   };
+
+  // Check if current route is an auth route
+  const isAuthRoute = 
+    location.pathname.includes('/login') || 
+    location.pathname.includes('/register') || 
+    location.pathname.includes('/forgot-password') || 
+    location.pathname.includes('/reset-password') || 
+    location.pathname.includes('/auth-callback');
 
   return (
     <div className="app-container">
@@ -82,45 +123,70 @@ function AppContent({ receipts, loading, error, handleUpload, handleReceiptDelet
         <InstallPWA />
       </div>
       
-      <nav className="nav-tabs">
-        <Link to="/" className={`tab-button ${getActiveTab("/")}`}>
-          <span className="tab-icon">💼</span>
-          {isMobile ? "" : "Wallet"}
-        </Link>
-        <Link to="/analytics" className={`tab-button ${getActiveTab("/analytics")}`}>
-          <span className="tab-icon">📊</span>
-          {isMobile ? "" : "Analytics"}
-        </Link>
-        <Link to="/insights" className={`tab-button ${getActiveTab("/insights")}`}>
-          <span className="tab-icon">💡</span>
-          {isMobile ? "" : "AI Insights"}
-        </Link>
-        <Link to="/upload" className={`tab-button ${getActiveTab("/upload")}`}>
-          <span className="tab-icon">📤</span>
-          {isMobile ? "" : "Upload"}
-        </Link>
-      </nav>
+      {/* Only show navigation tabs for authenticated users and non-auth routes */}
+      {!isAuthRoute && isAuthenticated && (
+        <nav className="nav-tabs">
+          <Link to="/dashboard" className={`tab-button ${getActiveTab("/dashboard")}`}>
+            <span className="tab-icon">💼</span>
+            {isMobile ? "" : "Wallet"}
+          </Link>
+          <Link to="/analytics" className={`tab-button ${getActiveTab("/analytics")}`}>
+            <span className="tab-icon">📊</span>
+            {isMobile ? "" : "Analytics"}
+          </Link>
+          <Link to="/insights" className={`tab-button ${getActiveTab("/insights")}`}>
+            <span className="tab-icon">💡</span>
+            {isMobile ? "" : "AI Insights"}
+          </Link>
+          <Link to="/upload" className={`tab-button ${getActiveTab("/upload")}`}>
+            <span className="tab-icon">📤</span>
+            {isMobile ? "" : "Upload"}
+          </Link>
+        </nav>
+      )}
       
       <main className="content">
         <Routes>
+          {/* Auth Routes (Public) */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/auth-callback" element={<AuthCallback />} />
+          
+          {/* Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={
+              <Wallet receipts={receipts} loading={loading} error={error} isMobile={isMobile} />
+            } />
+            <Route path="/analytics" element={
+              <Analytics receipts={receipts} loading={loading} isMobile={isMobile} />
+            } />
+            <Route path="/insights" element={
+              <AiInsights receipts={receipts} loading={loading} isMobile={isMobile} />
+            } />
+            <Route path="/upload" element={
+              <EnhancedUploadTab
+                onUpload={handleUpload}
+                receipts={receipts} 
+                loading={loading} 
+                error={error}
+                onReceiptDeleted={handleReceiptDeleted}
+                isMobile={isMobile}
+              />
+            } />
+          </Route>
+          
+          {/* Default Route - Redirect to dashboard if authenticated, otherwise login */}
           <Route path="/" element={
-            <Wallet receipts={receipts} loading={loading} error={error} isMobile={isMobile} />
+            isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/login" replace />
           } />
-          <Route path="/analytics" element={
-            <Analytics receipts={receipts} loading={loading} isMobile={isMobile} />
-          } />
-          <Route path="/insights" element={
-            <AiInsights receipts={receipts} loading={loading} isMobile={isMobile} />
-          } />
-          <Route path="/upload" element={
-            <EnhancedUploadTab
-              onUpload={handleUpload}
-              receipts={receipts} 
-              loading={loading} 
-              error={error}
-              onReceiptDeleted={handleReceiptDeleted}
-              isMobile={isMobile}
-            />
+          <Route path="*" element={
+            isAuthenticated ? 
+              <Navigate to="/dashboard" replace /> : 
+              <Navigate to="/login" replace />
           } />
         </Routes>
       </main>
@@ -128,6 +194,8 @@ function AppContent({ receipts, loading, error, handleUpload, handleReceiptDelet
       <footer className="footer">
         <p>© {new Date().getFullYear()} SmartLedger. All rights reserved.</p>
       </footer>
+      
+      <ToastContainer position="top-right" autoClose={3000} />
     </div>
   );
 }

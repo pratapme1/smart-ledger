@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { Wallet as WalletIcon, Calendar, DollarSign, CreditCard, Clock, Tag, Filter } from 'lucide-react';
+import { Wallet as WalletIcon, Calendar, DollarSign, CreditCard, Clock, Tag, Filter, Lock } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currencyUtils';
+import { AuthContext } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Wallet = ({ receipts, loading, error }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useContext(AuthContext);
+  
   const [recentReceipts, setRecentReceipts] = useState([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
   const [summaryStats, setSummaryStats] = useState({
@@ -25,10 +30,13 @@ const Wallet = ({ receipts, loading, error }) => {
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a64dff', '#ff6b6b', '#4ecdc4', '#ff9f1c'];
   
   useEffect(() => {
+    // Skip processing if user is not authenticated
+    if (!isAuthenticated) return;
+    
     if (!receipts || receipts.length === 0 || loading) return;
     
     processWalletData();
-  }, [receipts, loading, filterCategory, filterTimeframe]);
+  }, [receipts, loading, filterCategory, filterTimeframe, isAuthenticated]);
   
   const processWalletData = () => {
     if (!receipts || receipts.length === 0) return;
@@ -217,6 +225,25 @@ const Wallet = ({ receipts, loading, error }) => {
     ? ((summaryStats.thisMonth - summaryStats.lastMonth) / summaryStats.lastMonth) * 100 
     : 0;
   
+  // Show authentication required message if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="wallet-container auth-required">
+        <div className="auth-icon">
+          <Lock size={64} />
+        </div>
+        <h2>Authentication Required</h2>
+        <p>You need to be logged in to view your financial information.</p>
+        <button 
+          className="button button-primary login-button"
+          onClick={() => navigate('/login', { state: { from: window.location.pathname } })}
+        >
+          Log In
+        </button>
+      </div>
+    );
+  }
+  
   // Handle loading and error states
   if (loading) {
     return (
@@ -246,7 +273,12 @@ const Wallet = ({ receipts, loading, error }) => {
         </div>
         <h2>Your Wallet is Empty</h2>
         <p>Upload your first receipt to start tracking your expenses</p>
-        <button className="upload-button">Upload Receipt</button>
+        <button 
+          className="upload-button"
+          onClick={() => navigate('/upload')}
+        >
+          Upload Receipt
+        </button>
       </div>
     );
   }
@@ -417,7 +449,7 @@ const Wallet = ({ receipts, loading, error }) => {
             ))}
             
             <div className="view-all-link">
-              <a href="#" onClick={(e) => e.preventDefault()}>View All Receipts</a>
+              <a href="/receipts" onClick={(e) => {e.preventDefault(); navigate('/receipts');}}>View All Receipts</a>
             </div>
           </div>
         ) : (

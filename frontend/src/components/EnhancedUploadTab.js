@@ -1,4 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useContext, useEffect } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { toast } from "react-toastify";
+import api from "../services/api";
 import { Tab } from '@headlessui/react';
 import UploadForm from "./UploadForm";
 import ManualReceiptForm from "./ManualReceiptForm";
@@ -11,9 +14,10 @@ function classNames(...classes) {
 
 const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDeleted }) => {
   const [categories, setCategories] = useState([]);
+  const { token, isAuthenticated, user } = useContext(AuthContext);
   
   // Extract unique categories from existing receipts
-  React.useEffect(() => {
+  useEffect(() => {
     if (receipts && receipts.length > 0) {
       const uniqueCategories = [...new Set(
         receipts
@@ -26,22 +30,42 @@ const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDelete
   
   const handleManualSubmit = async (formData) => {
     try {
+      // Check if user is authenticated
+      if (!isAuthenticated) {
+        toast.error('You must be logged in to add receipts');
+        return;
+      }
+      
       // Create a FormData object to maintain consistency with file uploads
       const formDataObj = new FormData();
       
       // Add the manual receipt data as a JSON string
       formDataObj.append('manualReceiptData', JSON.stringify(formData));
       
+      // Add the user ID to associate the receipt with the logged-in user
+      if (user && user._id) {
+        formDataObj.append('userId', user._id);
+      }
+      
       console.log("Sending form data:", formData); // Debug what's being sent
       
-      // Send to the backend
-      const response = await fetch('https://smart-ledger-production.up.railway.app/add-manual-receipt', {
+      // Send to the backend with authentication
+      const response = await fetch(`${process.env.REACT_APP_API_URL}/add-manual-receipt`, {
         method: 'POST',
         body: formDataObj,
-        // Do NOT set Content-Type header - the browser will set it with the proper boundary
+        headers: {
+          'Authorization': `Bearer ${token}` // Include auth token
+          // Do NOT set Content-Type header for FormData - browser will set it with the proper boundary
+        }
       });
       
       if (!response.ok) {
+        // Handle authentication errors
+        if (response.status === 401) {
+          toast.error('Authentication failed. Please log in again.');
+          return;
+        }
+        
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to save manual receipt');
       }
@@ -51,13 +75,31 @@ const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDelete
       // Notify parent component about the new receipt
       onUpload(data);
       
-      // Show success message
-      alert('Receipt added successfully!');
+      // Show success message using toast instead of alert
+      toast.success('Receipt added successfully!');
     } catch (err) {
       console.error('Error adding manual receipt:', err);
-      alert(`Failed to add receipt: ${err.message}`);
+      toast.error(`Failed to add receipt: ${err.message}`);
     }
   };
+  
+  // If not authenticated, show login prompt
+  if (!isAuthenticated) {
+    return (
+      <div className="upload-tab-container">
+        <div className="auth-required-message">
+          <h3>Authentication Required</h3>
+          <p>You need to be logged in to manage receipts.</p>
+          <button 
+            className="login-button" 
+            onClick={() => window.location.href = '/login'}
+          >
+            Log In
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="upload-tab-container">

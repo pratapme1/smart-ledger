@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { 
   PencilLine, Calendar, DollarSign, Store, Tag, 
-  Plus, Minus, CreditCard, Receipt, X, Info 
+  Plus, Minus, CreditCard, Receipt, X, Info, AlertTriangle
 } from 'lucide-react';
+import { AuthContext } from '../context/AuthContext';
 
 const ManualReceiptForm = ({ onSubmit, categories = [] }) => {
+  const { isAuthenticated } = useContext(AuthContext);
+  
   const [formData, setFormData] = useState({
     merchant: '',
     date: new Date().toISOString().split('T')[0],
@@ -167,6 +170,12 @@ const ManualReceiptForm = ({ onSubmit, categories = [] }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     
+    // Check authentication first
+    if (!isAuthenticated) {
+      setError('You must be logged in to add receipts');
+      return;
+    }
+    
     // Validate required fields
     if (!formData.merchant) {
       setError('Merchant name is required');
@@ -224,6 +233,30 @@ const ManualReceiptForm = ({ onSubmit, categories = [] }) => {
     const currency = currencies.find(c => c.code === formData.currency);
     return currency ? currency.symbol : formData.currency;
   };
+  
+  // If not authenticated, show login prompt (optional, as parent may already handle this)
+  if (!isAuthenticated) {
+    return (
+      <div className="manual-receipt-form card">
+        <h2 className="card-title">
+          <PencilLine className="card-title-icon" size={20} />
+          Manual Receipt Entry
+        </h2>
+        
+        <div className="auth-required-message">
+          <AlertTriangle size={24} className="warning-icon" />
+          <h3>Authentication Required</h3>
+          <p>You need to be logged in to add receipts.</p>
+          <button 
+            className="button button-primary"
+            onClick={() => window.location.href = '/login'}
+          >
+            Log In
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="manual-receipt-form card">

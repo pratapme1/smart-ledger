@@ -1,15 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
 } from 'recharts';
-import { Calendar, TrendingUp, DollarSign, Clock, Circle } from 'lucide-react';
+import { Calendar, TrendingUp, DollarSign, Clock, Circle, Lock } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currencyUtils';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 // CSS styles are in your global stylesheet
 
 const Analytics = ({ receipts, loading }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isAuthenticated } = useContext(AuthContext);
+  
   const [timeRange, setTimeRange] = useState('all'); // Default to 'all'
   const [categoryData, setCategoryData] = useState([]);
   const [timeSeriesData, setTimeSeriesData] = useState([]);
@@ -25,17 +29,26 @@ const Analytics = ({ receipts, loading }) => {
 
   // Check if we should render this component
   const shouldRender = location.pathname === '/analytics';
+  
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (shouldRender && !isAuthenticated) {
+      // We could redirect, but let's display a login prompt instead
+      // navigate('/login', { state: { from: location } });
+    }
+  }, [shouldRender, isAuthenticated, navigate, location]);
 
   // Custom color palette for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a64dff', '#ff6b6b', '#4ecdc4', '#ff9f1c'];
   
   useEffect(() => {
     if (!shouldRender) return;
+    if (!isAuthenticated) return; // Don't process data if not authenticated
     if (!receipts || receipts.length === 0) return;
     
     // Process receipt data for analytics
     processReceiptData();
-  }, [receipts, timeRange, shouldRender, loading]);
+  }, [receipts, timeRange, shouldRender, loading, isAuthenticated]);
   
   const processReceiptData = () => {
     if (!receipts || receipts.length === 0) return;
@@ -253,6 +266,25 @@ const Analytics = ({ receipts, loading }) => {
   // Early return if not on analytics page
   if (!shouldRender) {
     return null;
+  }
+  
+  // Show auth required message if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="analytics-dashboard auth-required">
+        <div className="auth-icon">
+          <Lock size={64} />
+        </div>
+        <h2>Authentication Required</h2>
+        <p>You need to be logged in to view your spending analytics.</p>
+        <button 
+          className="button button-primary login-button"
+          onClick={() => navigate('/login', { state: { from: location } })}
+        >
+          Log In
+        </button>
+      </div>
+    );
   }
   
   // Loading state
