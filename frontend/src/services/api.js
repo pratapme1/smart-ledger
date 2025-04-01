@@ -1,6 +1,8 @@
 // src/services/api.js
 import axios from 'axios';
 import config from '../config';
+import config from '../config';
+console.log("Config in API:", config);
 
 // Use config object for all environment-specific values
 const API_URL = config.API_URL;
