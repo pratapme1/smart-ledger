@@ -3,8 +3,12 @@ import React, { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
 import config from '../config';
 
-// Use config.AUTH instead of AUTH_CONFIG
-const AUTH_CONFIG = config.AUTH;
+// Use the AUTH object from config with fallbacks
+const AUTH = config?.AUTH || { 
+  TOKEN_KEY: 'token', 
+  USER_KEY: 'user', 
+  REMEMBER_ME_KEY: 'rememberMe' 
+};
 
 export const AuthContext = createContext();
 
@@ -18,16 +22,16 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       try {
         // Check for token in localStorage
-        const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
-        const storedUser = localStorage.getItem(AUTH_CONFIG.USER_KEY);
+        const token = localStorage.getItem(AUTH.TOKEN_KEY);
+        const storedUser = localStorage.getItem(AUTH.USER_KEY);
         
         console.log("AuthContext init:", { 
           tokenExists: !!token, 
           storedUserExists: !!storedUser,
-          tokenKey: AUTH_CONFIG.TOKEN_KEY,
-          userKey: AUTH_CONFIG.USER_KEY,
-          apiUrl: config.API_URL, // Log API URL for debugging
-          baseUrl: config.BASE_URL  // Log BASE URL for debugging
+          tokenKey: AUTH.TOKEN_KEY,
+          userKey: AUTH.USER_KEY,
+          apiUrl: config?.API_URL, // Log API URL for debugging
+          baseUrl: config?.BASE_URL  // Log BASE URL for debugging
         });
         
         if (!token) {
@@ -42,10 +46,14 @@ export const AuthProvider = ({ children }) => {
         
         // Set authenticated state from localStorage first for faster UI response
         if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setIsAuthenticated(true);
-          console.log("Set initial auth state from localStorage:", { user: parsedUser.email });
+          try {
+            const parsedUser = JSON.parse(storedUser);
+            setUser(parsedUser);
+            setIsAuthenticated(true);
+            console.log("Set initial auth state from localStorage:", { user: parsedUser.email });
+          } catch (e) {
+            console.error("Error parsing stored user:", e);
+          }
         }
         
         // Verify with server regardless of stored data
@@ -57,7 +65,7 @@ export const AuthProvider = ({ children }) => {
             console.log("Server verification successful:", userData.user);
             setUser(userData.user);
             setIsAuthenticated(true);
-            localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(userData.user));
+            localStorage.setItem(AUTH.USER_KEY, JSON.stringify(userData.user));
           } else {
             console.error("Server returned invalid user data");
             throw new Error('Invalid user data from server');
@@ -68,8 +76,8 @@ export const AuthProvider = ({ children }) => {
           // Only clear auth data if it's an authentication error (401)
           if (error.response && error.response.status === 401) {
             console.log("Clearing invalid auth data due to 401");
-            localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-            localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+            localStorage.removeItem(AUTH.TOKEN_KEY);
+            localStorage.removeItem(AUTH.USER_KEY);
             setUser(null);
             setIsAuthenticated(false);
           } else {
@@ -99,10 +107,10 @@ export const AuthProvider = ({ children }) => {
       const { token, user } = response;
       
       // Store authentication data
-      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+      localStorage.setItem(AUTH.TOKEN_KEY, token);
       
       if (user) {
-        localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(user));
+        localStorage.setItem(AUTH.USER_KEY, JSON.stringify(user));
         setUser(user);
       }
       
@@ -130,10 +138,10 @@ export const AuthProvider = ({ children }) => {
       const response = await api.auth.register(userData);
       
       if (response.token) {
-        localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, response.token);
+        localStorage.setItem(AUTH.TOKEN_KEY, response.token);
         
         if (response.user) {
-          localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(response.user));
+          localStorage.setItem(AUTH.USER_KEY, JSON.stringify(response.user));
           setUser(response.user);
         }
         
@@ -156,8 +164,8 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = () => {
     // Clear auth data
-    localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-    localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+    localStorage.removeItem(AUTH.TOKEN_KEY);
+    localStorage.removeItem(AUTH.USER_KEY);
     
     // Update state
     setUser(null);
@@ -178,7 +186,7 @@ export const AuthProvider = ({ children }) => {
     
     try {
       // 1. Store token first
-      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+      localStorage.setItem(AUTH.TOKEN_KEY, token);
       
       // 2. Set token in API headers
       api.setAuthToken(token);
@@ -193,7 +201,7 @@ export const AuthProvider = ({ children }) => {
       if (userData && userData.user) {
         // Store user data and update state
         console.log("User data received:", userData.user);
-        localStorage.setItem(AUTH_CONFIG.USER_KEY, JSON.stringify(userData.user));
+        localStorage.setItem(AUTH.USER_KEY, JSON.stringify(userData.user));
         setUser(userData.user);
         return true;
       } else {

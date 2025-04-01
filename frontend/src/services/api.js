@@ -1,19 +1,21 @@
 // src/services/api.js
 import axios from 'axios';
 import config from '../config';
-import config from '../config';
-console.log("Config in API:", config);
 
-// Use config object for all environment-specific values
-const API_URL = config.API_URL;
-const BASE_URL = config.BASE_URL;
-const AUTH_CONFIG = config.AUTH;
+// Use destructuring with fallbacks
+const API_URL = config?.API_URL || 'http://localhost:8080/api';
+const BASE_URL = config?.BASE_URL || 'http://localhost:8080';
+const AUTH = config?.AUTH || { 
+  TOKEN_KEY: 'token', 
+  USER_KEY: 'user', 
+  REMEMBER_ME_KEY: 'rememberMe' 
+};
 
-// Create axios instance with credentials
+// Create axios instance
 const apiClient = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true // Enable sending cookies with requests
+  withCredentials: true
 });
 
 // Set auth token for future requests
@@ -27,63 +29,8 @@ const setAuthToken = (token) => {
   }
 };
 
-// Initialize with token from localStorage if it exists
-const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
-if (token) {
-  setAuthToken(token);
-  console.log("API: Initial auth token set from localStorage");
-}
-
-// Request interceptor to add token to requests
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem(AUTH_CONFIG.TOKEN_KEY);
-    if (token) {
-      config.headers['Authorization'] = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor for global error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error);
-    
-    // Handle specific error scenarios
-    if (error.response) {
-      switch (error.response.status) {
-        case 401:
-          // Token is invalid or expired
-          localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-          localStorage.removeItem(AUTH_CONFIG.USER_KEY);
-          // Only redirect if not already on login page
-          if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-          }
-          break;
-        case 403:
-          console.error('Forbidden: You do not have permission');
-          break;
-        case 404:
-          console.error('Not Found');
-          break;
-        case 500:
-          console.error('Server Error');
-          break;
-      }
-    } else if (error.request) {
-      // Request was made but no response received
-      console.error('Network Error: No response received from server');
-    }
-    return Promise.reject(error);
-  }
-);
-
 // Authentication API calls
-const auth = {
+const authMethods = {
   // Register new user
   register: async (userData) => {
     try {
@@ -102,18 +49,13 @@ const auth = {
       
       // Set token in headers for future requests
       if (response.data && response.data.token) {
-        localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, response.data.token);
+        localStorage.setItem(AUTH.TOKEN_KEY, response.data.token);
         setAuthToken(response.data.token);
       }
       
       return response.data;
     } catch (error) {
       console.error('Login Error:', error);
-      if (error.response) {
-        console.error('Error response:', error.response.data);
-      } else if (error.request) {
-        console.error('No response received:', error.request);
-      }
       throw error;
     }
   },
@@ -164,15 +106,15 @@ const auth = {
   
   // Log out (client-side)
   logout: () => {
-    localStorage.removeItem(AUTH_CONFIG.TOKEN_KEY);
-    localStorage.removeItem(AUTH_CONFIG.USER_KEY);
+    localStorage.removeItem(AUTH.TOKEN_KEY);
+    localStorage.removeItem(AUTH.USER_KEY);
     // Remove token from headers
     setAuthToken(null);
     // Redirect to login page
     window.location.href = '/login';
   },
   
-  // Social login URLs - Using config.BASE_URL
+  // Social login URLs
   socialLogin: {
     google: `${BASE_URL}/api/auth/google`,
     github: `${BASE_URL}/api/auth/github`
@@ -192,7 +134,7 @@ const auth = {
     
     if (token) {
       console.log("API: OAuth token received, storing");
-      localStorage.setItem(AUTH_CONFIG.TOKEN_KEY, token);
+      localStorage.setItem(AUTH.TOKEN_KEY, token);
       setAuthToken(token);
       return token;
     }
@@ -203,11 +145,10 @@ const auth = {
 };
 
 // Receipt API calls
-const receipts = {
+const receiptMethods = {
   // Upload single receipt
   uploadReceipt: async (formData) => {
     try {
-      // Use apiClient with API prefix for consistent routing
       const response = await apiClient.post('/upload-receipt', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
@@ -280,8 +221,14 @@ const receipts = {
 // Export API
 const api = {
   setAuthToken,
-  auth,
-  receipts
+  auth: authMethods,
+  receipts: receiptMethods
 };
+
+// Initialize token after api object is fully defined
+const storedToken = localStorage.getItem(AUTH.TOKEN_KEY);
+if (storedToken) {
+  setAuthToken(storedToken);
+}
 
 export default api;

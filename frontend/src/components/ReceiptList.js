@@ -4,6 +4,9 @@ import { getCurrencySymbol } from '../utils/currencyUtils';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
 
+// Use environment variable for API URL with fallback
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {
@@ -134,7 +137,7 @@ const ReceiptCard = ({ receipt, index, onDelete, isAuthenticated }) => {
 };
 
 export default function ReceiptList({ receipts, loading, error, onReceiptDeleted }) {
-  const { isAuthenticated, token } = useContext(AuthContext);
+  const { isAuthenticated, user, getAuthHeaders } = useContext(AuthContext);
   const [filteredReceipts, setFilteredReceipts] = useState([]);
   const [sortOption, setSortOption] = useState('date-desc');
   const [searchQuery, setSearchQuery] = useState('');
@@ -208,13 +211,19 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
     // Delay API call slightly to ensure popup is visible
     setTimeout(async () => {
       try {
-        // Get API URL from environment variables
-        const apiUrl = process.env.REACT_APP_API_URL || 'https://smart-ledger-production.up.railway.app';
-        const response = await fetch(`${apiUrl}/delete-receipt/${id}`, {
+        // Get JWT token from local storage
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+          throw new Error('Authentication token not found. Please log in again.');
+        }
+        
+        // Using the API_URL from the environment variable
+        const response = await fetch(`${API_URL}/delete-receipt/${id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}` // Include auth token
+            'Authorization': `Bearer ${token}`
           }
         });
         
@@ -223,6 +232,12 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
           throw new Error('Authentication failed. Please log in again.');
         }
         
+        // Handle 404 errors (receipt not found)
+        if (response.status === 404) {
+          throw new Error('Receipt not found or already deleted');
+        }
+        
+        // Parse the response
         const data = await response.json();
         
         if (!response.ok) {

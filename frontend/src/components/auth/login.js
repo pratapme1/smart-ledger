@@ -8,6 +8,13 @@ import api from '../../services/api';
 import config from '../../config';
 import './Login.css';
 
+// Fallback for config.AUTH in case it's undefined
+const AUTH = config?.AUTH || {
+  TOKEN_KEY: 'token',
+  USER_KEY: 'user',
+  REMEMBER_ME_KEY: 'rememberMe'
+};
+
 const Login = () => {
   const [formData, setFormData] = useState({
     email: '',
@@ -56,15 +63,15 @@ const Login = () => {
         throw new Error('Invalid response from server. Missing token.');
       }
       
-      // Store token and user info
-      localStorage.setItem(config.AUTH.TOKEN_KEY, response.token);
+      // Store token and user info - use AUTH fallback object
+      localStorage.setItem(AUTH.TOKEN_KEY, response.token);
       if (response.user) {
-        localStorage.setItem(config.AUTH.USER_KEY, JSON.stringify(response.user));
+        localStorage.setItem(AUTH.USER_KEY, JSON.stringify(response.user));
       }
 
       // Set persistent login if remember me is checked
       if (rememberMe) {
-        localStorage.setItem(config.AUTH.REMEMBER_ME_KEY, 'true');
+        localStorage.setItem(AUTH.REMEMBER_ME_KEY, 'true');
       }
 
       // Configure default headers for future API requests

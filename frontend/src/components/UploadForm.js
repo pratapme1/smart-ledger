@@ -1,6 +1,9 @@
 import React, { useState, useRef } from "react";
 import { Upload, FileUp, X, Info, Check, AlertTriangle } from "lucide-react";
 
+// Use environment variable for API URL with fallback
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 export default function UploadForm({ onUpload }) {
   const [files, setFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -49,7 +52,14 @@ export default function UploadForm({ onUpload }) {
       setError("Please select at least one file!");
       return;
     }
-
+    // Get the authentication token from localStorage or wherever you store it
+    const token = localStorage.getItem('token');
+  
+    if (!token) {
+      setError("Authentication required. Please log in again.");
+      return;
+    }
+  
     const formData = new FormData();
     const isMultiple = files.length > 1;
     
@@ -72,32 +82,39 @@ export default function UploadForm({ onUpload }) {
 
     try {
       const endpoint = isMultiple ? "upload-multiple-receipts" : "upload-receipt";
-      const response = await fetch(`https://smart-ledger-production.up.railway.app/${endpoint}`, {
+      const response = await fetch(`${API_URL}/${endpoint}`, {
         method: "POST",
+        headers: {
+          // Include the authorization header with Bearer token
+          'Authorization': `Bearer ${token}`
+        },  
         body: formData,
+        // Include credentials if you need to send cookies/auth
+        credentials: 'include',
       });
 
       clearInterval(progressInterval);
       setUploadProgress(100);
 
-      const data = await response.json();
-
-      if (response.ok) {
-        onUpload(data);
-        setFiles([]);
-        setUploadSuccess(true);
-        
-        // Clear success message after 3 seconds
-        setTimeout(() => {
-          setUploadSuccess(false);
-          setUploadProgress(0);
-        }, 3000);
-      } else {
-        throw new Error(data.message || "Upload failed.");
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: `Server error: ${response.status}` }));
+        throw new Error(errorData.message || "Upload failed.");
       }
+      
+      const data = await response.json();
+      onUpload(data);
+      setFiles([]);
+      setUploadSuccess(true);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setUploadSuccess(false);
+        setUploadProgress(0);
+      }, 3000);
     } catch (err) {
       clearInterval(progressInterval);
-      setError(err.message);
+      console.error("Upload error:", err);
+      setError(err.message || "Upload failed. Please try again.");
       setUploadProgress(0);
     } finally {
       setUploading(false);

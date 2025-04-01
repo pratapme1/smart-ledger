@@ -1,12 +1,14 @@
 import React, { useState, useContext, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import api from "../services/api";
 import { Tab } from '@headlessui/react';
 import UploadForm from "./UploadForm";
 import ManualReceiptForm from "./ManualReceiptForm";
 import ReceiptList from "./ReceiptList";
 import { Upload, PencilLine } from "lucide-react";
+
+// Use environment variable for API URL with fallback
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 function classNames(...classes) {
   return classes.filter(Boolean).join(' ');
@@ -14,7 +16,7 @@ function classNames(...classes) {
 
 const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDeleted }) => {
   const [categories, setCategories] = useState([]);
-  const { token, isAuthenticated, user } = useContext(AuthContext);
+  const { isAuthenticated, user } = useContext(AuthContext);
   
   // Extract unique categories from existing receipts
   useEffect(() => {
@@ -36,6 +38,13 @@ const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDelete
         return;
       }
       
+      // Get token from localStorage
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.');
+        return;
+      }
+      
       // Create a FormData object to maintain consistency with file uploads
       const formDataObj = new FormData();
       
@@ -50,7 +59,7 @@ const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDelete
       console.log("Sending form data:", formData); // Debug what's being sent
       
       // Send to the backend with authentication
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/add-manual-receipt`, {
+      const response = await fetch(`${API_URL}/add-manual-receipt`, {
         method: 'POST',
         body: formDataObj,
         headers: {
