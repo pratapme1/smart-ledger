@@ -147,11 +147,18 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`🌐 CORS allowing origin: ${FRONTEND_URL}`);
-  console.log(`📡 API endpoints available at: http://localhost:${PORT}/api`);
+  console.log(`🌐 CORS allowing origin: ${process.env.FRONTEND_URL}`);
   
+  // Use the dynamic URL for logging
+  const apiUrl = process.env.NODE_ENV === 'production' 
+    ? `${process.env.RAILWAY_STATIC_URL || 'https://your-app.railway.app'}/api` 
+    : `http://localhost:${PORT}/api`;
+    
+  console.log(`📡 API endpoints available at: ${apiUrl}`);
+    
   // Log OAuth configuration status
   if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     console.log('✅ Google OAuth is configured');
