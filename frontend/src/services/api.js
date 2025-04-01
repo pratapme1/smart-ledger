@@ -2,18 +2,27 @@
 import axios from 'axios';
 import config from '../config';
 
-// Use destructuring with fallbacks
-const API_URL = config?.API_URL || 'http://localhost:8080/api';
-const BASE_URL = config?.BASE_URL || 'http://localhost:8080';
+// Use environment variables with fallbacks, then config fallbacks
+const API_URL = process.env.REACT_APP_API_URL || config?.API_URL || 'http://localhost:8080';
+const BASE_URL = process.env.REACT_APP_BASE_URL || config?.BASE_URL || 'http://localhost:8080';
+const ENV = process.env.REACT_APP_ENV || 'development';
+
+// Log environment settings
+console.log(`API Service initialized in ${ENV} environment`);
+console.log(`API URL: ${API_URL}`);
+console.log(`BASE URL: ${BASE_URL}`);
+
+// Auth constants
 const AUTH = config?.AUTH || { 
   TOKEN_KEY: 'token', 
   USER_KEY: 'user', 
   REMEMBER_ME_KEY: 'rememberMe' 
 };
 
-// Create axios instance
+// Create axios instance - Make sure the baseURL doesn't duplicate /api if it's in the URL
+const apiBaseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
 const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: apiBaseUrl,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true
 });
@@ -28,6 +37,32 @@ const setAuthToken = (token) => {
     console.log("API: Auth token removed from headers");
   }
 };
+
+// Add a response interceptor to handle auth errors
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Handle authentication errors
+    if (error.response && error.response.status === 401) {
+      console.error('API: Authentication error - token might be invalid or expired');
+      
+      // Don't automatically logout if on login/register pages
+      const path = window.location.pathname;
+      if (!path.includes('/login') && !path.includes('/register') && !path.includes('/auth/')) {
+        console.log('API: Redirecting to login due to auth error');
+        localStorage.removeItem(AUTH.TOKEN_KEY);
+        localStorage.removeItem(AUTH.USER_KEY);
+        setAuthToken(null);
+        // Redirect with a slight delay to allow for any state updates
+        setTimeout(() => {
+          window.location.href = '/login?expired=true';
+        }, 100);
+      }
+    }
+    
+    return Promise.reject(error);
+  }
+);
 
 // Authentication API calls
 const authMethods = {
@@ -45,6 +80,7 @@ const authMethods = {
   // Login with email and password
   login: async (credentials) => {
     try {
+      console.log(`Login attempt to ${apiBaseUrl}/auth/login`);
       const response = await apiClient.post('/auth/login', credentials);
       
       // Set token in headers for future requests
@@ -114,7 +150,7 @@ const authMethods = {
     window.location.href = '/login';
   },
   
-  // Social login URLs
+  // Social login URLs - using URL from env vars
   socialLogin: {
     google: `${BASE_URL}/api/auth/google`,
     github: `${BASE_URL}/api/auth/github`

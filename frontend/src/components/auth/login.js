@@ -4,15 +4,23 @@ import { toast } from 'react-toastify';
 import { FcGoogle } from 'react-icons/fc';
 import { FaGithub, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { AuthContext } from '../../context/AuthContext';
-import api from '../../services/api';
 import config from '../../config';
 import './Login.css';
+
+// Get API URL from environment variables with fallback
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 // Fallback for config.AUTH in case it's undefined
 const AUTH = config?.AUTH || {
   TOKEN_KEY: 'token',
   USER_KEY: 'user',
   REMEMBER_ME_KEY: 'rememberMe'
+};
+
+// Social login URLs
+const SOCIAL_LOGIN = {
+  google: `${API_URL}/api/auth/google`,
+  github: `${API_URL}/api/auth/github`
 };
 
 const Login = () => {
@@ -56,27 +64,36 @@ const Login = () => {
         throw new Error('Please enter both email and password');
       }
       
-      const response = await api.auth.login({ email, password });
+      // Direct fetch approach to avoid potential issues with the api service
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email, password })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Login failed: ${response.status}`);
+      }
+      
+      const data = await response.json();
       
       // Verify that we have the required data
-      if (!response || !response.token) {
+      if (!data || !data.token) {
         throw new Error('Invalid response from server. Missing token.');
       }
       
-      // Store token and user info - use AUTH fallback object
-      localStorage.setItem(AUTH.TOKEN_KEY, response.token);
-      if (response.user) {
-        localStorage.setItem(AUTH.USER_KEY, JSON.stringify(response.user));
+      // Store token and user info
+      localStorage.setItem(AUTH.TOKEN_KEY, data.token);
+      if (data.user) {
+        localStorage.setItem(AUTH.USER_KEY, JSON.stringify(data.user));
       }
 
       // Set persistent login if remember me is checked
       if (rememberMe) {
         localStorage.setItem(AUTH.REMEMBER_ME_KEY, 'true');
-      }
-
-      // Configure default headers for future API requests
-      if (api.setAuthToken) {
-        api.setAuthToken(response.token);
       }
 
       toast.success('Login successful!');
@@ -88,7 +105,7 @@ const Login = () => {
       }, 500);
     } catch (error) {
       console.error('Login error:', error);
-      toast.error(error.response?.data?.message || error.message || 'Login failed. Please check your credentials.');
+      toast.error(error.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -106,7 +123,7 @@ const Login = () => {
     console.log(`Login: Starting ${provider} social login`);
     console.log("Login: Storing redirect path:", from);
     
-    window.location.href = api.auth.socialLogin[provider];
+    window.location.href = SOCIAL_LOGIN[provider];
   };
 
   return (
