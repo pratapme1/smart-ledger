@@ -34,13 +34,39 @@ const session = require('express-session'); // Add this for OAuth
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Define frontend URL
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+// Define frontend URL - strip trailing slash if present
+let FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+if (FRONTEND_URL.endsWith('/')) {
+  FRONTEND_URL = FRONTEND_URL.slice(0, -1);
+}
 console.log(`🔒 CORS allowing origin: ${FRONTEND_URL}`);
 
-// Configure CORS with enhanced options
+// Support multiple origins if needed
+const allowedOrigins = [FRONTEND_URL];
+
+// If we have local development, add localhost origins
+if (NODE_ENV !== 'production') {
+  allowedOrigins.push('http://localhost:3000');
+  // Add more origins if needed for local testing
+}
+
+// Log all allowed origins
+console.log('🔒 CORS allowed origins:', allowedOrigins);
+
+// Configure CORS with enhanced options and multiple origins support
 const corsOptions = {
-  origin: FRONTEND_URL,
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is allowed
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`❌ CORS blocked for origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 'Accept'],
@@ -52,7 +78,16 @@ app.use(cors(corsOptions));
 
 // Add a middleware to explicitly set CORS headers for all routes
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+  const origin = req.headers.origin;
+  
+  // If the origin is in our allowed list, set it as the Access-Control-Allow-Origin
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    // Default to the primary frontend URL if origin isn't in the request
+    res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -99,6 +134,7 @@ if (NODE_ENV !== 'production') {
       JWT_SECRET_EXISTS: !!process.env.JWT_SECRET,
       PORT: process.env.PORT,
       FRONTEND_URL: process.env.FRONTEND_URL,
+      CORS_ORIGINS: allowedOrigins,
       GOOGLE_CLIENT_ID_EXISTS: !!process.env.GOOGLE_CLIENT_ID,
       GOOGLE_CLIENT_SECRET_EXISTS: !!process.env.GOOGLE_CLIENT_SECRET,
       GITHUB_CLIENT_ID_EXISTS: !!process.env.GITHUB_CLIENT_ID,
@@ -147,15 +183,14 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-// Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`🌐 CORS allowing origin: ${process.env.FRONTEND_URL}`);
+  console.log(`🌐 CORS allowing origins: ${allowedOrigins.join(', ')}`);
   
   // Use the dynamic URL for logging
   const apiUrl = process.env.NODE_ENV === 'production' 
-    ? `${process.env.RAILWAY_STATIC_URL || 'https://your-app.railway.app'}/api` 
-    : `http://localhost:${PORT}/api`;
+  ? `${process.env.RAILWAY_STATIC_URL || 'https://smart-ledger-production.up.railway.app'}/api` 
+  : `http://localhost:${PORT}/api`;
     
   console.log(`📡 API endpoints available at: ${apiUrl}`);
     
