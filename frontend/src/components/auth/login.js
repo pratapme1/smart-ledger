@@ -5,6 +5,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { FaGithub, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
+import config from '../../config';
 import './Login.css';
 
 const Login = () => {
@@ -56,14 +57,14 @@ const Login = () => {
       }
       
       // Store token and user info
-      localStorage.setItem('token', response.token);
+      localStorage.setItem(config.AUTH.TOKEN_KEY, response.token);
       if (response.user) {
-        localStorage.setItem('user', JSON.stringify(response.user));
+        localStorage.setItem(config.AUTH.USER_KEY, JSON.stringify(response.user));
       }
 
       // Set persistent login if remember me is checked
       if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
+        localStorage.setItem(config.AUTH.REMEMBER_ME_KEY, 'true');
       }
 
       // Configure default headers for future API requests

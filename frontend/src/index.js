@@ -13,6 +13,18 @@ root.render(
     <App />
   </React.StrictMode>
 );
+// src/config/index.js
+const config = {
+  API_URL: process.env.REACT_APP_API_URL || 'http://localhost:8080/api',
+  BASE_URL: process.env.REACT_APP_BASE_URL || 'http://localhost:8080',
+  FRONTEND_URL: process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000',
+  AUTH: {
+    TOKEN_KEY: 'token',
+    USER_KEY: 'user',
+    REMEMBER_ME_KEY: 'rememberMe'
+  }
+};
 
+export default config;
 // Register service worker
 //serviceWorkerRegistration.register();

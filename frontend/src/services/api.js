@@ -1,9 +1,11 @@
 // src/services/api.js
 import axios from 'axios';
-import { AUTH_CONFIG } from '../config';
+import config from '../config';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
-const BASE_URL = process.env.REACT_APP_API_URL ? process.env.REACT_APP_API_URL.replace('/api', '') : 'http://localhost:8080';
+// Use config object for all environment-specific values
+const API_URL = config.API_URL;
+const BASE_URL = config.BASE_URL;
+const AUTH_CONFIG = config.AUTH;
 
 // Create axios instance with credentials
 const apiClient = axios.create({
@@ -168,7 +170,7 @@ const auth = {
     window.location.href = '/login';
   },
   
-  // Social login URLs - Updated to use consistent OAuth callback path
+  // Social login URLs - Using config.BASE_URL
   socialLogin: {
     google: `${BASE_URL}/api/auth/google`,
     github: `${BASE_URL}/api/auth/github`

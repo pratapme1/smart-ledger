@@ -1,10 +1,10 @@
 // components/auth/AuthCallback.js
-
 import React, { useEffect, useContext, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
+import config from '../../config';
 
 const AuthCallback = () => {
   const [error, setError] = useState(null);
@@ -39,8 +39,8 @@ const AuthCallback = () => {
         
         console.log("AuthCallback: Token received from URL");
         
-        // Store token in localStorage directly
-        localStorage.setItem('token', token);
+        // Store token in localStorage directly using config keys
+        localStorage.setItem(config.AUTH.TOKEN_KEY, token);
         
         // Set token in API headers
         if (api.setAuthToken) {
@@ -54,7 +54,7 @@ const AuthCallback = () => {
           
           if (userData && userData.user) {
             console.log("AuthCallback: User data received:", userData.user);
-            localStorage.setItem('user', JSON.stringify(userData.user));
+            localStorage.setItem(config.AUTH.USER_KEY, JSON.stringify(userData.user));
             
             // Show success message
             toast.success('Login successful!');

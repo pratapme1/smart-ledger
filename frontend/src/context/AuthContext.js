@@ -1,7 +1,10 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import api from '../services/api';
-import { AUTH_CONFIG } from '../config';
+import config from '../config';
+
+// Use config.AUTH instead of AUTH_CONFIG
+const AUTH_CONFIG = config.AUTH;
 
 export const AuthContext = createContext();
 
@@ -22,7 +25,9 @@ export const AuthProvider = ({ children }) => {
           tokenExists: !!token, 
           storedUserExists: !!storedUser,
           tokenKey: AUTH_CONFIG.TOKEN_KEY,
-          userKey: AUTH_CONFIG.USER_KEY
+          userKey: AUTH_CONFIG.USER_KEY,
+          apiUrl: config.API_URL, // Log API URL for debugging
+          baseUrl: config.BASE_URL  // Log BASE URL for debugging
         });
         
         if (!token) {
