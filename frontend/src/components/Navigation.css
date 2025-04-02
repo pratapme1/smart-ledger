@@ -1,0 +1,74 @@
+/* Navigation.css - Styled to match the reference image */
+.navbar {
+  width: 100%;
+  background: linear-gradient(to right, #3b82f6, #4f46e5);
+  padding: 1.5rem 1rem;
+  text-align: center;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar-brand {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.nav-buttons {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.nav-button {
+  padding: 0.5rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: 1px solid white;
+}
+
+.nav-button.primary {
+  background-color: white;
+  color: #3b82f6;
+}
+
+.nav-button.primary:hover {
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.nav-button.secondary {
+  background-color: transparent;
+  color: white;
+}
+
+.nav-button.secondary:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .navbar {
+    padding: 1.25rem 0.75rem;
+  }
+  
+  .navbar-brand {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .nav-buttons {
+    gap: 1rem;
+  }
+  
+  .nav-button {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}

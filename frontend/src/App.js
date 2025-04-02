@@ -10,6 +10,7 @@ import Analytics from "./components/Analytics";
 import AiInsights from "./components/AiInsights";
 import Header from "./components/Header";
 import InstallPWA from './components/InstallPWA';
+import Navbar from './components/Navbar'; // Import the new Navbar component
 import "./styles.css";
 
 // Auth Components
@@ -123,7 +124,12 @@ function MainApp() {
 
   return (
     <div className="app-container">
-      <Header />
+      {/* Show Header for authenticated routes, otherwise show Navbar for auth routes */}
+      {isAuthRoute ? (
+        <Navbar />
+      ) : (
+        <Header />
+      )}
       
       {/* Install PWA button - placed near the header */}
       <div className="pwa-install-container">
