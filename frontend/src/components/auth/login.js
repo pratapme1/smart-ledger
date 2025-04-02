@@ -65,7 +65,7 @@ const Login = () => {
       }
       
       // Direct fetch approach to avoid potential issues with the api service
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
