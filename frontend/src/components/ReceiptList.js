@@ -219,7 +219,7 @@ export default function ReceiptList({ receipts, loading, error, onReceiptDeleted
         }
         
         // Using the API_URL from the environment variable
-        const response = await fetch(`${API_URL}/delete-receipt/${id}`, {
+        const response = await fetch(`${API_URL}/api/delete-receipt/${id}`, {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',

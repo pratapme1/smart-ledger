@@ -59,7 +59,7 @@ const EnhancedUploadTab = ({ onUpload, receipts, loading, error, onReceiptDelete
       console.log("Sending form data:", formData); // Debug what's being sent
       
       // Send to the backend with authentication
-      const response = await fetch(`${API_URL}/add-manual-receipt`, {
+      const response = await fetch(`${API_URL}/api/add-manual-receipt`, {
         method: 'POST',
         body: formDataObj,
         headers: {

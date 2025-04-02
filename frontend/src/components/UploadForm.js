@@ -82,7 +82,7 @@ export default function UploadForm({ onUpload }) {
 
     try {
       const endpoint = isMultiple ? "upload-multiple-receipts" : "upload-receipt";
-      const response = await fetch(`${API_URL}/${endpoint}`, {
+      const response = await fetch(`${API_URL}/api/${endpoint}`, {
         method: "POST",
         headers: {
           // Include the authorization header with Bearer token
