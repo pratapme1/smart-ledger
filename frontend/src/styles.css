@@ -2279,3 +2279,183 @@
 .auth-form .auth-options a:hover {
   text-decoration: underline;
 }
+
+/* Dark Mode Styles - Add to your styles.css file */
+
+/* Base dark mode styles */
+body.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+
+/* App container dark mode */
+.dark-mode .app-container {
+  background-color: #121212;
+}
+
+/* Content area dark mode */
+.dark-mode .content {
+  background-color: #1e1e1e;
+}
+
+/* Cards and panels dark mode */
+.dark-mode .card,
+.dark-mode .panel {
+  background-color: #292929;
+  border-color: #3d3d3d;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Headings dark mode */
+.dark-mode h1, 
+.dark-mode h2, 
+.dark-mode h3, 
+.dark-mode h4, 
+.dark-mode h5, 
+.dark-mode h6 {
+  color: #e0e0e0;
+}
+
+/* Form elements dark mode */
+.dark-mode input,
+.dark-mode select,
+.dark-mode textarea {
+  background-color: #3d3d3d;
+  border-color: #555;
+  color: #e0e0e0;
+}
+
+.dark-mode input::placeholder,
+.dark-mode textarea::placeholder {
+  color: #a0a0a0;
+}
+
+/* Navigation tabs dark mode */
+.dark-mode .nav-tabs {
+  background-color: #1e1e1e;
+  border-color: #3d3d3d;
+}
+
+.dark-mode .tab-button {
+  color: #a0a0a0;
+}
+
+.dark-mode .tab-button.active {
+  background-color: #3d3d3d;
+  color: #e0e0e0;
+}
+
+/* Buttons dark mode */
+.dark-mode button:not(.profile-button):not(.profile-menu-item) {
+  background-color: #3d3d3d;
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+.dark-mode button:not(.profile-button):not(.profile-menu-item):hover {
+  background-color: #4d4d4d;
+}
+
+.dark-mode .primary-button {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.dark-mode .primary-button:hover {
+  background-color: #2563eb;
+}
+
+/* Links dark mode */
+.dark-mode a {
+  color: #60a5fa;
+}
+
+.dark-mode a:hover {
+  color: #93c5fd;
+}
+
+/* Tables dark mode */
+.dark-mode table {
+  border-color: #3d3d3d;
+}
+
+.dark-mode th {
+  background-color: #2d2d2d;
+  color: #e0e0e0;
+}
+
+.dark-mode td {
+  border-color: #3d3d3d;
+}
+
+.dark-mode tr:nth-child(even) {
+  background-color: #252525;
+}
+
+/* Footer dark mode */
+.dark-mode .footer {
+  background-color: #1e1e1e;
+  border-top: 1px solid #3d3d3d;
+  color: #a0a0a0;
+}
+
+/* Add these styles to your main CSS file (styles.css) */
+
+/* App container styles */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Main content area - account for new header and navigation */
+.content {
+  flex: 1;
+  padding: 1.5rem;
+  background-color: #f5f7fa;
+}
+
+/* Footer styles - maintain position at bottom */
+.footer {
+  padding: 1rem;
+  text-align: center;
+  background-color: white;
+  border-top: 1px solid #e0e0e0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+/* PWA install button container */
+.pwa-install-container {
+  padding: 0.5rem 1rem;
+  display: flex;
+  justify-content: center;
+  background-color: #f5f7fa;
+}
+
+/* Other utility classes */
+.card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .content {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 0.75rem;
+  }
+  
+  .card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+}

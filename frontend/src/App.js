@@ -10,7 +10,7 @@ import Analytics from "./components/Analytics";
 import AiInsights from "./components/AiInsights";
 import Header from "./components/Header";
 import InstallPWA from './components/InstallPWA';
-import Navbar from './components/Navbar'; // Import the new Navbar component
+import Navbar from './components/Navbar'; // Import the Navbar component
 import "./styles.css";
 
 // Auth Components
@@ -103,16 +103,6 @@ function MainApp() {
 
   // Determine if it's a mobile device
   const isMobile = windowWidth < 768;
-  
-  // Determine active tab based on current path
-  const getActiveTab = (path) => {
-    // Make dashboard active for both /dashboard and /wallet routes
-    if (path === "/dashboard" && 
-        (location.pathname === "/dashboard" || location.pathname === "/wallet")) {
-      return "active";
-    }
-    return location.pathname === path ? "active" : "";
-  };
 
   // Check if current route is an auth route
   const isAuthRoute = 
@@ -124,7 +114,8 @@ function MainApp() {
 
   return (
     <div className="app-container">
-      {/* Show Header for authenticated routes, otherwise show Navbar for auth routes */}
+      {/* For auth routes (login/register), use Navbar component */}
+      {/* For authenticated routes, Header now contains the hamburger menu */}
       {isAuthRoute ? (
         <Navbar />
       ) : (
@@ -136,27 +127,10 @@ function MainApp() {
         <InstallPWA />
       </div>
       
-      {/* Only show navigation tabs for authenticated users and non-auth routes */}
-      {!isAuthRoute && isAuthenticated && (
-        <nav className="nav-tabs">
-          <Link to="/wallet" className={`tab-button ${getActiveTab("/dashboard")}`}>
-            <span className="tab-icon">💼</span>
-            {isMobile ? "" : "Wallet"}
-          </Link>
-          <Link to="/analytics" className={`tab-button ${getActiveTab("/analytics")}`}>
-            <span className="tab-icon">📊</span>
-            {isMobile ? "" : "Analytics"}
-          </Link>
-          <Link to="/insights" className={`tab-button ${getActiveTab("/insights")}`}>
-            <span className="tab-icon">💡</span>
-            {isMobile ? "" : "AI Insights"}
-          </Link>
-          <Link to="/upload" className={`tab-button ${getActiveTab("/upload")}`}>
-            <span className="tab-icon">📤</span>
-            {isMobile ? "" : "Upload"}
-          </Link>
-        </nav>
-      )}
+      {/* 
+        Remove the navigation tabs since they're now in the hamburger menu 
+        that's included in the Header component
+      */}
       
       <main className="content">
         <Routes>

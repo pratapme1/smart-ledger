@@ -1,35 +1,41 @@
-import { useContext } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useContext } from "react";
+import { Link } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import ProfileMenu from "./ProfileMenu";
+import HamburgerButton from "./HamburgerButton";
+import NavigationMenu from "./NavigationMenu";
+import "./Header.css";
 
 function Header() {
-  const { user, logout } = useContext(AuthContext);
-  const navigate = useNavigate();
-  
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
+  const { user } = useContext(AuthContext);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
   };
 
+  // For authenticated users, show header with hamburger menu
   return (
     <header className="header">
-      <div className="logo">
-        <h1>SmartLedger</h1>
+      {/* Left section: Hamburger button */}
+      <div className="header-left">
+        <HamburgerButton isOpen={menuOpen} toggleMenu={toggleMenu} />
       </div>
-      
-      {user ? (
-        <div className="user-menu">
-          <span className="username">Hello, {user.name}</span>
-          <button onClick={handleLogout} className="logout-button">
-            Logout
-          </button>
-        </div>
-      ) : (
-        <div className="auth-links">
-          <Link to="/login" className="auth-link">Login</Link>
-          <Link to="/register" className="auth-link register">Register</Link>
-        </div>
-      )}
+
+      {/* Center section: Logo */}
+      <div className="header-center">
+        <Link to="/wallet" className="logo-link">
+          <h1>SmartLedger</h1>
+        </Link>
+      </div>
+
+      {/* Right section: Profile menu */}
+      <div className="header-right">
+        <ProfileMenu />
+      </div>
+
+      {/* Navigation Menu */}
+      <NavigationMenu isOpen={menuOpen} setIsOpen={setMenuOpen} />
     </header>
   );
 }
