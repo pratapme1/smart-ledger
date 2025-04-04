@@ -1,0 +1,234 @@
+.smart-assistant {
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.smart-assistant-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-radius: 8px;
+}
+
+.tab-button:hover {
+  background: #f1f5f9;
+  color: #2c3e50;
+}
+
+.tab-button.active {
+  background: #4CAF50;
+  color: white;
+}
+
+.smart-assistant-content {
+  min-height: 400px;
+}
+
+/* Price Trends Styles */
+.price-trends-container {
+  padding: 20px;
+}
+
+.item-selector {
+  margin-bottom: 24px;
+}
+
+.item-select {
+  width: 100%;
+  max-width: 300px;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.price-chart {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.price-chart h3 {
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+.merchant-comparison {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.merchant-comparison h3 {
+  margin-bottom: 16px;
+  color: #2c3e50;
+}
+
+.merchant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.merchant-card {
+  background: white;
+  padding: 16px;
+  border-radius: 8px;
+  position: relative;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s;
+}
+
+.merchant-card:hover {
+  transform: translateY(-2px);
+}
+
+.merchant-card h4 {
+  color: #2c3e50;
+  margin-bottom: 8px;
+}
+
+.merchant-card .price {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4CAF50;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.merchant-card .instances {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.best-price-tag {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #4CAF50;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+/* Upcoming Purchases Styles */
+.upcoming-purchases {
+  padding: 20px;
+}
+
+.upcoming-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.upcoming-card {
+  background: #f8fafc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: transform 0.2s;
+}
+
+.upcoming-card:hover {
+  transform: translateY(-2px);
+}
+
+.upcoming-card h4 {
+  color: #2c3e50;
+  margin-bottom: 12px;
+}
+
+.upcoming-card .amount {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4CAF50;
+  margin-bottom: 8px;
+}
+
+.upcoming-card .date {
+  color: #64748b;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.upcoming-card .source {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin-bottom: 16px;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+
+.action-button:hover {
+  background: #43a047;
+}
+
+/* Loading State */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  color: #64748b;
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .smart-assistant-tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab-button {
+    flex: 1;
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  .merchant-grid,
+  .upcoming-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .price-trends-container,
+  .upcoming-purchases {
+    padding: 10px;
+  }
+} 

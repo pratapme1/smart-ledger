@@ -157,6 +157,10 @@ app.use('/api/auth', require('./routes/auth'));
 // Mount receipt routes under /api prefix
 app.use('/api', require('./routes/receipts'));
 
+// Add this line to include your new AI routes
+app.use('/api/ai', require('./routes/aiRoutes'));
+
+
 // Simple root route for API health check
 app.get('/', (req, res) => {
   res.json({

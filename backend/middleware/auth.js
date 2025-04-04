@@ -1,6 +1,6 @@
-// middleware/auth.js
 const passport = require('passport');
 
-module.exports = {
-  authenticateJWT: passport.authenticate('jwt', { session: false })
-};
+// Middleware to authenticate JWT token
+const authenticateJWT = passport.authenticate('jwt', { session: false });
+
+module.exports = authenticateJWT; 
