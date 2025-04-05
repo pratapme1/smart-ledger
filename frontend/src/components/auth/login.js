@@ -8,7 +8,7 @@ import config from '../../config';
 import './Login.css';
 
 // Get API URL from environment variables with fallback
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080';
 
 // Fallback for config.AUTH in case it's undefined
 const AUTH = config?.AUTH || {

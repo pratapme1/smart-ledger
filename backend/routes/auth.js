@@ -200,4 +200,4 @@ router.get('/github/callback',
   }
 );
 
-module.exports = passport.authenticate('jwt', { session: false });
+module.exports = router;
