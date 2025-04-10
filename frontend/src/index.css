@@ -162,3 +162,33 @@ code {
   margin-bottom: 1rem;
   color: #d1d5db;
 }
+
+/* Add these CSS variables to your root :root selector in index.css */
+:root {
+  /* Color palette */
+  --primary-color: #3b82f6;      /* Indigo 500 */
+  --primary-dark: #2563eb;       /* Indigo 600 */
+  --primary-light: #93c5fd;      /* Indigo 300 */
+  
+  /* Gray scale */
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
+  
+  /* Status colors */
+  --success-color: #10b981;      /* Green 500 */
+  --success-light: #d1fae5;      /* Green 100 */
+  --error-color: #ef4444;        /* Red 500 */
+  --error-text: #b91c1c;         /* Red 700 */
+  --error-light: #fee2e2;        /* Red 100 */
+  --error-border: #fca5a5;       /* Red 300 */
+  --warning-color: #f59e0b;      /* Amber 500 */
+  --info-color: #3b82f6;         /* Blue 500 */
+}

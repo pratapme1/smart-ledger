@@ -5,6 +5,8 @@ const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
+const transporter = require('../config/email');
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -62,15 +64,24 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log(`Login attempt for: ${email}`);
     
     // Check if user exists
     const user = await User.findOne({ email });
     if (!user) {
+      console.log(`User not found: ${email}`);
       return res.status(400).json({ message: 'Invalid credentials' });
     }
     
+    console.log(`User found with ID: ${user._id}`);
+    
+    // Log the stored hash for debugging (just show part of it for security)
+    console.log(`Stored password hash: ${user.password ? user.password.substring(0, 10) + '...' : 'undefined'}`);
+    
     // Check if password is correct
     const isMatch = await bcrypt.compare(password, user.password);
+    console.log(`Password match result: ${isMatch}`);
+    
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -126,14 +137,120 @@ router.post('/verify-token', async (req, res) => {
 
 // Forgot password
 router.post('/forgot-password', async (req, res) => {
-  // Implement your forgot password logic here
-  res.status(501).json({ message: 'Not implemented yet' });
-});
+  try {
+    const { email } = req.body;
+    console.log('Forgot password request received for email:', email);
+    
+    // Find user
+    const user = await User.findOne({ email });
+    
+    if (!user) {
+      console.log('No user found with email:', email);
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    console.log('User found:', user._id);
+    
+    // Generate reset token
+    const resetToken = crypto.randomBytes(20).toString('hex');
+    console.log('Generated reset token');
+    
+    // Hash the token before saving to database
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+    
+    // Set token and expiry
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    
+    await user.save();
+    console.log('User saved with reset token');
+    
+    // Send email with the unhashed token
+    const resetURL = `${FRONTEND_URL}/reset-password/${resetToken}`;
+    console.log('Reset URL:', resetURL);
+    
+    try {
+      // Email sending code
+      const mailOptions = {
+        from: process.env.EMAIL_USERNAME,
+        to: user.email,
+        subject: 'Password Reset',
+        html: `
+          <p>You requested a password reset.</p>
+          <p>Click this link to reset your password:</p>
+          <a href="${resetURL}">${resetURL}</a>
+          <p>This link will expire in 1 hour.</p>
+        `
+      };
+      
+      console.log('Attempting to send email with options:', {
+        from: process.env.EMAIL_USERNAME,
+        to: user.email,
+        subject: 'Password Reset'
+      });
+
+      await transporter.sendMail(mailOptions);
+      console.log('Email sent successfully');
+      
+      res.json({ message: "Password reset email sent" });
+    } catch (emailErr) {
+      console.error('Email sending error:', emailErr);
+      res.status(500).json({ message: "Error sending reset email" });
+    }
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ message: "Server error" });
+  }
+});  
 
 // Reset password
 router.post('/reset-password/:token', async (req, res) => {
-  // Implement your reset password logic here
-  res.status(501).json({ message: 'Not implemented yet' });
+  try {
+    const { password } = req.body;
+    const { token } = req.params;
+    
+    console.log('Reset attempt with token:', token);
+    
+    // Hash the received token to compare with stored hashed token
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+    
+    console.log('Looking for user with hashed token:', hashedToken);
+    
+    // Find user with valid token (using the hashed version)
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+    
+    if (!user) {
+      console.log('No user found with valid token');
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+    
+    console.log('User found, resetting password');
+    
+    // IMPORTANT CHANGE: Simply set the plain password and let the pre-save middleware handle the hashing
+    // This prevents double-hashing issues
+    user.password = password;
+    
+    // Clear reset token fields
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    
+    await user.save();
+    
+    console.log('Password reset successful');
+    res.json({ message: "Password reset successful" });
+  } catch (err) {
+    console.error('Reset password error:', err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 // SOCIAL LOGIN ROUTES

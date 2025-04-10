@@ -99,13 +99,19 @@ exports.forgotPassword = async (req, res) => {
       });
     }
     
-    // Generate token
+    // Generate reset token
     const resetToken = crypto.randomBytes(20).toString('hex');
-    
-    // Set token and expiry
-    user.resetPasswordToken = resetToken;
+
+  // Hash the token before saving to database
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
+
+  // Set token and expiry
+    user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
-    
+     
     await user.save();
     
     // Send email
@@ -139,15 +145,28 @@ exports.resetPassword = async (req, res) => {
     const { password } = req.body;
     const { token } = req.params;
     
-    // Find user with valid token
+    console.log('Reset attempt with token:', token);
+    
+    // Hash the received token to compare with stored hashed token
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(token)
+      .digest('hex');
+    
+    console.log('Looking for user with hashed token:', hashedToken);
+    
+    // Find user with valid token (using the hashed version)
     const user = await User.findOne({
-      resetPasswordToken: token,
+      resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() }
     });
     
     if (!user) {
+      console.log('No user found with valid token');
       return res.status(400).json({ message: "Invalid or expired token" });
     }
+
+    console.log('User found, resetting password');
     
     // Hash new password
     const salt = await bcrypt.genSalt(10);
@@ -158,7 +177,7 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     
     await user.save();
-    
+    console.log('Password reset successful');
     res.json({ message: "Password reset successful" });
   } catch (err) {
     console.error(err.message);

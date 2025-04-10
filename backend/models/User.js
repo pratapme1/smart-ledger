@@ -28,6 +28,12 @@ const UserSchema = new mongoose.Schema({
   avatar: {
     type: String
   },
+  resetPasswordToken: {
+    type: String
+  },
+  resetPasswordExpires: {
+    type: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -42,10 +48,12 @@ UserSchema.pre('save', async function(next) {
   }
   
   try {
+    console.log('Hashing password in pre-save hook');
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (err) {
+    console.error('Error hashing password:', err);
     next(err);
   }
 });

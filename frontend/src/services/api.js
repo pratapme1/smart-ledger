@@ -119,12 +119,15 @@ const authMethods = {
   },
   
   // Request password reset
+// Inside api.js -> authMethods object
   forgotPassword: async (email) => {
     try {
+      console.log(`API: Sending forgot password request for email: ${email}`);
       const response = await apiClient.post('/auth/forgot-password', { email });
+      console.log('API: Forgot password response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Forgot Password Error:', error.response?.data || error.message);
+      console.error('API: Forgot Password Error:', error);
       throw error;
     }
   },

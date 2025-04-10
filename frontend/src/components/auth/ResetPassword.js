@@ -2,12 +2,16 @@ import React, { useState, useContext, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
+import { FaEye, FaEyeSlash, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
+import './ResetPassword.css';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetSuccess, setResetSuccess] = useState(false);
   const [validationError, setValidationError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const { token } = useParams();
   const { resetPassword, loading, error } = useContext(AuthContext);
@@ -54,18 +58,19 @@ const ResetPassword = () => {
   
   if (resetSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Password Reset Successful
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              Your password has been reset. You can now login with your new password.
+      <div className="reset-password-container">
+        <div className="reset-password-card">
+          <div className="success-container">
+            <div className="success-icon">
+              <FaCheckCircle />
+            </div>
+            <h2 className="success-title">Password Reset Successful</h2>
+            <p className="success-message">
+              Your password has been reset successfully. You can now login with your new password.
             </p>
-          </div>
-          <div className="mt-6 text-center">
-            <p>Redirecting to login page...</p>
+            <p className="success-message">
+              Redirecting to login page...
+            </p>
           </div>
         </div>
       </div>
@@ -73,71 +78,83 @@ const ResetPassword = () => {
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Reset Your Password
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Please enter your new password
-          </p>
+    <div className="reset-password-container">
+      <div className="reset-password-card">
+        <div className="reset-password-header">
+          <h1>Set New Password</h1>
+          <p>Please create a new secure password for your account</p>
         </div>
         
         {(error || validationError) && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{error || validationError}</span>
+          <div className="error-message">
+            <span>{error || validationError}</span>
           </div>
         )}
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="password" className="sr-only">New Password</label>
+        <form className="reset-password-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="password">New Password</label>
+            <div className="password-input-container">
               <input
                 id="password"
                 name="password"
-                type="password"
+                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="New password"
+                className="form-input"
+                placeholder="Enter new password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+              <button 
+                type="button" 
+                className="password-toggle"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex="-1"
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
-            <div>
-              <label htmlFor="confirmPassword" className="sr-only">Confirm New Password</label>
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm New Password</label>
+            <div className="password-input-container">
               <input
                 id="confirmPassword"
                 name="confirmPassword"
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="form-input"
                 placeholder="Confirm new password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
+              <button 
+                type="button" 
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                tabIndex="-1"
+              >
+                {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              {loading ? 'Resetting...' : 'Reset Password'}
-            </button>
-          </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="reset-button"
+          >
+            {loading ? 'Updating...' : 'Reset Password'}
+          </button>
           
-          <div className="flex items-center justify-center">
-            <div className="text-sm">
-              <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Return to login
-              </Link>
-            </div>
+          <div className="back-to-login">
+            <Link to="/login">
+              <FaArrowLeft style={{ marginRight: '0.5rem' }} />
+              Return to login
+            </Link>
           </div>
         </form>
       </div>

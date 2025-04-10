@@ -89,16 +89,6 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
             </Link>
           </li>
           
-          <li>
-            <Link 
-              to="/insights" 
-              className={`menu-item ${isActive('/insights') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <span className="menu-icon">💡</span>
-              <span>AI Insights</span>
-            </Link>
-          </li>
           
           <li>
             <Link 

@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   // Initialize authentication state
   useEffect(() => {
@@ -97,6 +98,7 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (credentials) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.auth.login(credentials);
       
@@ -122,6 +124,7 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
+      setError(error.response?.data?.message || error.message || 'Login failed');
       return { 
         success: false,
         error: error.response?.data?.message || error.message || 'Login failed'
@@ -134,6 +137,7 @@ export const AuthProvider = ({ children }) => {
   // Register function
   const register = async (userData) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await api.auth.register(userData);
       
@@ -152,10 +156,49 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Registration failed:', error);
+      setError(error.response?.data?.message || error.message || 'Registration failed');
       return {
         success: false,
         error: error.response?.data?.message || error.message || 'Registration failed'
       };
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Forgot password function
+  const forgotPassword = async (email) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log("Sending forgot password request for:", email);
+      await api.auth.forgotPassword(email);
+      console.log("Forgot password request successful");
+      return true;
+    } catch (err) {
+      console.error("Forgot password error:", err);
+      setError(err.response?.data?.message || "Failed to send reset email");
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Reset password function
+  const resetPassword = async (token, newPassword) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log("Resetting password with token");
+      await api.auth.resetPassword(token, newPassword);
+      console.log("Password reset successful");
+      return true;
+    } catch (err) {
+      console.error("Password reset error:", err);
+      setError(err.response?.data?.message || "Failed to reset password");
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -209,6 +252,7 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('OAuth callback processing error:', error);
+      setError(error.response?.data?.message || error.message || 'Authentication failed');
       return false;
     }
   };
@@ -218,9 +262,12 @@ export const AuthProvider = ({ children }) => {
     user,
     isAuthenticated,
     loading,
+    error,
     login,
     register,
     logout,
+    forgotPassword,
+    resetPassword,
     handleOAuthCallback
   };
   

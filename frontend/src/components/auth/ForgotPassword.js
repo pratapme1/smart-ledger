@@ -2,6 +2,8 @@ import React, { useState, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
+import { FaEnvelope, FaArrowLeft, FaCheckCircle } from 'react-icons/fa';
+import './ForgotPassword.css';
 
 const ForgotPassword = () => {
   const [email, setEmail] = useState('');
@@ -10,36 +12,53 @@ const ForgotPassword = () => {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+    console.log("Submit button clicked");
     
     if (!email) {
       toast.error('Please enter your email address');
       return;
     }
     
+    console.log("About to call forgotPassword with email:", email);
+    
     try {
+      console.log("Attempting to reset password for:", email);
       await forgotPassword(email);
+      console.log("Password reset request successful");
       setSent(true);
       toast.success('Password reset email sent!');
     } catch (err) {
+      console.error("Password reset error:", err);
       toast.error(error || 'Failed to send reset email');
     }
   };
   
   if (sent) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Check your email
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
-              We've sent a password reset link to {email}. Please check your inbox.
-            </p>
-          </div>
+      <div className="forgot-password-container">
+        <div className="forgot-password-card">
+        <div className="success-container">
+  <div className="success-icon">
+    <FaCheckCircle />
+  </div>
+  <h2 className="success-title">Check your email</h2>
+  
+  <div className="success-message-box">
+    <p className="success-message">
+      We've sent a password reset link to <strong className="email-address">{email}</strong>. Please check your inbox and spam folder.
+    </p>
+  </div>
+  
+  <div className="success-message-box">
+    <p className="success-message">
+      The link will expire in 1 hour for security reasons.
+    </p>
+  </div>
+</div>
           
-          <div className="mt-6 text-center">
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+          <div className="back-to-login">
+            <Link to="/login">
+              <FaArrowLeft style={{ marginRight: '0.5rem' }} />
               Return to login
             </Link>
           </div>
@@ -49,55 +68,53 @@ const ForgotPassword = () => {
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Reset your password
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your email address and we'll send you a link to reset your password.
-          </p>
+    <div className="forgot-password-container">
+      <div className="forgot-password-card">
+        <div className="forgot-password-header">
+          <h1>Reset your password</h1>
+          <p>Enter your email address and we'll send you a link to reset your password</p>
         </div>
         
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{error}</span>
+          <div className="error-message">
+            <span>{error}</span>
           </div>
         )}
         
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label htmlFor="email" className="sr-only">Email address</label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="appearance-none rounded relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-              placeholder="Email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        <form className="forgot-password-form" onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label htmlFor="email">Email Address</label>
+            <div className="password-input-container">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="form-input"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <span className="password-toggle" style={{ pointerEvents: 'none' }}>
+                <FaEnvelope />
+              </span>
+            </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-            >
-              {loading ? 'Sending...' : 'Send Reset Link'}
-            </button>
-          </div>
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="submit-button"
+          >
+            {loading ? 'Sending...' : 'Send Reset Link'}
+          </button>
           
-          <div className="flex items-center justify-center">
-            <div className="text-sm">
-              <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-                Return to login
-              </Link>
-            </div>
+          <div className="back-to-login">
+            <Link to="/login">
+              <FaArrowLeft style={{ marginRight: '0.5rem' }} />
+              Return to login
+            </Link>
           </div>
         </form>
       </div>

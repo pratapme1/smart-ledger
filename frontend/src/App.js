@@ -7,12 +7,12 @@ import 'react-toastify/dist/ReactToastify.css';
 import EnhancedUploadTab from "./components/EnhancedUploadTab";
 import Wallet from "./components/Wallet";
 import Analytics from "./components/Analytics";
-import SmartAssistant from "./components/SmartAssistant"; // Import the new SmartAssistant component
+//import SmartAssistant from "./components/SmartAssistant"; // Import the new SmartAssistant component
 import Header from "./components/Header";
 import InstallPWA from './components/InstallPWA';
 import Navbar from './components/Navbar'; // Import the Navbar component
 import "./styles.css";
-import './styles/SmartAssistant.css'; // Import SmartAssistant CSS
+//import './styles/SmartAssistant.css'; // Import SmartAssistant CSS
 
 // Auth Components
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -170,10 +170,6 @@ function MainApp() {
               <Analytics receipts={receipts} loading={loading} isMobile={isMobile} />
             } />
             
-            {/* Replace AiInsights with SmartAssistant */}
-            <Route path="/insights" element={
-              <SmartAssistant receipts={receipts} loading={loading} isMobile={isMobile} />
-            } />
             
             <Route path="/upload" element={
               <EnhancedUploadTab
