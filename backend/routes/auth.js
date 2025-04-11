@@ -328,6 +328,7 @@ passport.authenticate('google', {
 
 // Do the same for GitHub callback
 // GitHub OAuth routes
+// Route to initiate GitHub OAuth flow
 router.get('/github', (req, res, next) => {
   console.log('GitHub auth initiated - redirecting to GitHub');
   next();
@@ -337,6 +338,7 @@ passport.authenticate('github', {
   session: false 
 }));
 
+// Route to handle the callback from GitHub
 router.get('/github/callback', (req, res, next) => {
   console.log('Received callback from GitHub OAuth');
   next();
@@ -354,19 +356,21 @@ passport.authenticate('github', {
     console.log(`✅ GitHub authentication successful for: ${req.user.email}`);
     console.log(`✅ User ID: ${req.user._id}`);
     
-    // Set the token as an HTTP-only cookie instead of in URL
-    setTokenCookie(res, token);
+    // Set the token as an HTTP-only cookie if cookie-based auth is enabled
+    if (typeof setTokenCookie === 'function') {
+      setTokenCookie(res, token);
+    }
     
-    // Store a success flag in the session
-    req.session.authSuccess = true;
+    // ALSO include token in URL for backward compatibility
+    // Make sure there's no trailing slash in FRONTEND_URL to avoid double slashes
+    const frontendUrl = FRONTEND_URL.endsWith('/') ? FRONTEND_URL.slice(0, -1) : FRONTEND_URL;
+    const redirectUrl = `${frontendUrl}/auth-callback?token=${token}`;
     
-    // Redirect without exposing the token in the URL
-    console.log(`✅ Redirecting to: ${FRONTEND_URL}/auth-callback`);
-    res.redirect(`${FRONTEND_URL}/auth-callback`);
+    console.log(`✅ Redirecting to: ${redirectUrl}`);
+    res.redirect(redirectUrl);
   } catch (error) {
     console.error('❌ Error in GitHub callback:', error);
     res.redirect(`${FRONTEND_URL}/auth-callback?error=${encodeURIComponent('Authentication failed')}`);
   }
 });
-
 module.exports = router;

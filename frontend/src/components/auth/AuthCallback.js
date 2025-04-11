@@ -49,7 +49,8 @@ const AuthCallback = () => {
         
         console.log("AuthCallback: URL params:", {
           hasToken: !!token,
-          hasError: !!errorMsg
+          hasError: !!errorMsg,
+          allParams: Object.fromEntries(urlParams.entries())
         });
         
         // Check for error parameter
@@ -106,13 +107,14 @@ const AuthCallback = () => {
             
             setProcessingComplete(true);
             
-            // DIRECT NAVIGATION - Most reliable method
-            console.log("AuthCallback: Will redirect to wallet in 1 second");
+            // DIRECT NAVIGATION - Using a longer timeout for GitHub which seems to need more time
+            console.log("AuthCallback: Will redirect to wallet in 2 seconds");
             setTimeout(() => {
               console.log("AuthCallback: Redirecting to wallet NOW");
               window.location.href = '/wallet';
-            }, 1000);
+            }, 2000); // Increased timeout for GitHub
             
+            return; // Stop further execution
           } else {
             console.error("AuthCallback: User data invalid or empty");
             throw new Error('Failed to get user data');
@@ -138,7 +140,12 @@ const AuthCallback = () => {
       }
     };
     
-    processCallback();
+    // Use a small delay to ensure all browser events have completed
+    const timer = setTimeout(() => {
+      processCallback();
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
   
   // Manual navigation function

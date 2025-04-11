@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { FcGoogle } from 'react-icons/fc';
@@ -34,10 +34,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Get auth context functions and state
   const { login } = useContext(AuthContext);
-
-  // Get the redirect path from location state or default to wallet
   const from = location.state?.from || '/wallet';
 
   const handleChange = (e) => {
@@ -58,13 +55,11 @@ const Login = () => {
 
     try {
       const { email, password, rememberMe } = formData;
-      
-      // Validate input
+
       if (!email || !password) {
         throw new Error('Please enter both email and password');
       }
-      
-      // Direct fetch approach to avoid potential issues with the api service
+
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
@@ -72,35 +67,29 @@ const Login = () => {
         },
         body: JSON.stringify({ email, password })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Login failed: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
-      // Verify that we have the required data
+
       if (!data || !data.token) {
         throw new Error('Invalid response from server. Missing token.');
       }
-      
-      // Store token and user info
+
       localStorage.setItem(AUTH.TOKEN_KEY, data.token);
       if (data.user) {
         localStorage.setItem(AUTH.USER_KEY, JSON.stringify(data.user));
       }
 
-      // Set persistent login if remember me is checked
       if (rememberMe) {
         localStorage.setItem(AUTH.REMEMBER_ME_KEY, 'true');
       }
 
       toast.success('Login successful!');
-      
-      // DIRECT NAVIGATION - More reliable than React Router's navigate
       setTimeout(() => {
-        console.log("Login: Direct navigation to wallet page");
         window.location.href = '/wallet';
       }, 500);
     } catch (error) {
@@ -112,17 +101,10 @@ const Login = () => {
   };
 
   const handleSocialLogin = (provider) => {
-    // Store the intended redirect path before navigating away
     sessionStorage.setItem('redirectAfterLogin', from);
-    
-    // Save form data in case user returns without completing social login
     if (formData.email) {
       sessionStorage.setItem('loginEmail', formData.email);
     }
-    
-    console.log(`Login: Starting ${provider} social login`);
-    console.log("Login: Storing redirect path:", from);
-    
     window.location.href = SOCIAL_LOGIN[provider];
   };
 
@@ -130,8 +112,34 @@ const Login = () => {
     <div className="login-container">
       <div className="login-card">
         <div className="login-header">
-          <h1>Welcome back</h1>
-          <p>Sign in to continue to Smart Ledger</p>
+          <h1>Sign in to Smart Ledger</h1>
+          <p>Choose how you'd like to continue</p>
+        </div>
+
+        <div className="social-login-section">
+          <button 
+            type="button" 
+            className="social-button google-button"
+            onClick={() => handleSocialLogin('google')}
+            disabled={loading}
+          >
+            <FcGoogle size={18} />
+            <span>Continue with Google</span>
+          </button>
+          
+          <button 
+            type="button" 
+            className="social-button github-button"
+            onClick={() => handleSocialLogin('github')}
+            disabled={loading}
+          >
+            <FaGithub size={18} />
+            <span>Continue with GitHub</span>
+          </button>
+        </div>
+
+        <div className="login-divider">
+          <span>EMAIL LOGIN</span>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">
@@ -194,38 +202,13 @@ const Login = () => {
             className="login-button"
             disabled={loading}
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Signing in...' : 'Sign in with email'}
           </button>
         </form>
 
-        <div className="social-login-divider">
-          <span>or continue with</span>
-        </div>
-
-        <div className="social-login-buttons">
-          <button 
-            type="button" 
-            className="social-button google-button"
-            onClick={() => handleSocialLogin('google')}
-            disabled={loading}
-          >
-            <FcGoogle />
-            <span>Google</span>
-          </button>
-          <button 
-            type="button" 
-            className="social-button github-button"
-            onClick={() => handleSocialLogin('github')}
-            disabled={loading}
-          >
-            <FaGithub />
-            <span>GitHub</span>
-          </button>
-        </div>
-
-        <div className="signup-prompt">
+        <div className="auth-options">
           <p>
-            Don't have an account? <Link to="/register">Create an account</Link>
+            Don't have an account? <Link to="/register" className="register-link">Create an account</Link>
           </p>
         </div>
       </div>
