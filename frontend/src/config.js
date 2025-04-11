@@ -1,10 +1,32 @@
-// Use environment variable with fallback for development
-const API_URL = process.env.REACT_APP_API_URL || "https://smart-ledger-production.up.railway.app";
+// src/config/index.js
+// This is what your config file should look like
 
-export default API_URL;
-
-// Export additional configuration values if needed
-export const AUTH_CONFIG = {
-  TOKEN_KEY: 'smart_ledger_auth_token',
-  USER_KEY: 'smart_ledger_user'
+const getApiUrl = () => {
+  return process.env.REACT_APP_API_URL || 'http://localhost:8080';
 };
+
+const getBaseUrl = () => {
+  return process.env.REACT_APP_BASE_URL || 'http://localhost:8080';
+};
+
+const config = {
+  API_URL: getApiUrl(),
+  BASE_URL: getBaseUrl(),
+  ENV: process.env.REACT_APP_ENV || 'development',
+  
+  // IMPORTANT: Make sure this AUTH object exists
+  AUTH: {
+    TOKEN_KEY: 'token',
+    USER_KEY: 'user',
+    REMEMBER_ME_KEY: 'rememberMe'
+  }
+};
+
+console.log('Config loaded:', {
+  API_URL: config.API_URL,
+  BASE_URL: config.BASE_URL,
+  ENV: config.ENV,
+  AUTH: config.AUTH ? 'defined' : 'undefined'
+});
+
+export default config;

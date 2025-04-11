@@ -28,7 +28,11 @@ if (NODE_ENV !== 'production') {
 const express = require('express');
 const cors = require('cors');
 const passport = require('passport');
-const session = require('express-session'); // Add this for OAuth
+const session = require('express-session');
+const cookieParser = require('cookie-parser'); // Add for cookie parsing
+const helmet = require('helmet'); // Add for security headers
+const mongoSanitize = require('express-mongo-sanitize'); // Add for NoSQL injection protection
+const rateLimit = require('express-rate-limit'); // Add for rate limiting
 
 // Create Express app
 const app = express();
@@ -100,16 +104,39 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // For parsing application/x-www-form-urlencoded
+// Enhanced security headers using helmet
+app.use(helmet());
 
-// Session configuration (needed for OAuth)
+// Parse cookies for JWT token storage
+app.use(cookieParser(process.env.COOKIE_SECRET || process.env.JWT_SECRET));
+
+// Add NoSQL injection protection
+app.use(mongoSanitize());
+
+// Rate limiting to prevent brute force attacks
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: { message: 'Too many requests, please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Apply rate limiter to auth routes
+app.use('/api/auth', loginLimiter);
+
+app.use(express.json({ limit: '10mb' })); // Limit request body size
+app.use(express.urlencoded({ extended: true, limit: '10mb' })); // For parsing application/x-www-form-urlencoded
+
+// Session configuration with secure settings
 app.use(session({
   secret: process.env.SESSION_SECRET || process.env.JWT_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: { 
     secure: NODE_ENV === 'production', // Use secure cookies in production
+    httpOnly: true, // Prevent JavaScript access to cookies
+    sameSite: 'lax', // Provides some CSRF protection
     maxAge: 24 * 60 * 60 * 1000 // 24 hours
   }
 }));
@@ -160,7 +187,6 @@ app.use('/api', require('./routes/receipts'));
 // Add this line to include your new AI routes
 app.use('/api/ai', require('./routes/aiRoutes'));
 
-
 // Simple root route for API health check
 app.get('/', (req, res) => {
   res.json({
@@ -180,10 +206,17 @@ app.use((err, req, res, next) => {
     });
   }
   
-  res.status(500).json({ 
-    message: "❌ Server error occurred.", 
-    error: err.message 
-  });
+  // Hide detailed error messages in production
+  if (NODE_ENV === 'production') {
+    res.status(500).json({ 
+      message: "❌ Server error occurred." 
+    });
+  } else {
+    res.status(500).json({ 
+      message: "❌ Server error occurred.", 
+      error: err.message 
+    });
+  }
 });
 
 // Start server

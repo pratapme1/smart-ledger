@@ -4,11 +4,15 @@ import api from '../services/api';
 import config from '../config';
 
 // Use the AUTH object from config with fallbacks
-const AUTH = config?.AUTH || { 
-  TOKEN_KEY: 'token', 
-  USER_KEY: 'user', 
-  REMEMBER_ME_KEY: 'rememberMe' 
+const AUTH = {
+  TOKEN_KEY: 'token',
+  USER_KEY: 'user',
+  REMEMBER_ME_KEY: 'rememberMe',
+  ...(config?.AUTH || {}) // Spread config.AUTH if it exists, otherwise empty object
 };
+
+// Log the AUTH object for debugging
+console.log("AuthContext initialized with AUTH keys:", AUTH);
 
 export const AuthContext = createContext();
 
@@ -218,7 +222,7 @@ export const AuthProvider = ({ children }) => {
     api.setAuthToken(null);
   };
   
-  // Handle OAuth callback - UPDATED for more reliable operation
+  // Handle OAuth callback
   const handleOAuthCallback = async (token) => {
     console.log("handleOAuthCallback received token:", !!token);
     

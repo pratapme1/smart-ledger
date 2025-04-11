@@ -1,3 +1,5 @@
+// Update your api.js to work with HTTP-only cookies
+
 // src/services/api.js
 import axios from 'axios';
 import config from '../config';
@@ -24,14 +26,15 @@ const apiBaseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
 const apiClient = axios.create({
   baseURL: apiBaseUrl,
   headers: { 'Content-Type': 'application/json' },
-  withCredentials: true
+  withCredentials: true // Important for cookie-based auth
 });
 
-// Set auth token for future requests
+// We don't need to set auth token in headers anymore since we're using cookies
+// But keep this for compatibility with old code
 const setAuthToken = (token) => {
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    console.log("API: Auth token set in headers");
+    console.log("API: Auth token set in headers (for backward compatibility)");
   } else {
     delete apiClient.defaults.headers.common['Authorization'];
     console.log("API: Auth token removed from headers");
@@ -44,15 +47,15 @@ apiClient.interceptors.response.use(
   (error) => {
     // Handle authentication errors
     if (error.response && error.response.status === 401) {
-      console.error('API: Authentication error - token might be invalid or expired');
+      console.error('API: Authentication error - unauthorized access');
       
       // Don't automatically logout if on login/register pages
       const path = window.location.pathname;
       if (!path.includes('/login') && !path.includes('/register') && !path.includes('/auth/')) {
         console.log('API: Redirecting to login due to auth error');
-        localStorage.removeItem(AUTH.TOKEN_KEY);
+        // Note: No need to remove token from localStorage since we're using cookies
         localStorage.removeItem(AUTH.USER_KEY);
-        setAuthToken(null);
+        
         // Redirect with a slight delay to allow for any state updates
         setTimeout(() => {
           window.location.href = '/login?expired=true';
@@ -69,6 +72,10 @@ const authMethods = {
   // Register new user
   register: async (userData) => {
     try {
+      // Don't log the password
+      const { email, name } = userData;
+      console.log(`Registration attempt for: ${email}`);
+      
       const response = await apiClient.post('/auth/register', userData);
       return response.data;
     } catch (error) {
@@ -80,15 +87,12 @@ const authMethods = {
   // Login with email and password
   login: async (credentials) => {
     try {
-      console.log(`Login attempt to ${apiBaseUrl}/auth/login`);
+      // Only log email, not password
+      console.log(`Login attempt for: ${credentials.email}`);
+      
       const response = await apiClient.post('/auth/login', credentials);
       
-      // Set token in headers for future requests
-      if (response.data && response.data.token) {
-        localStorage.setItem(AUTH.TOKEN_KEY, response.data.token);
-        setAuthToken(response.data.token);
-      }
-      
+      // No need to manually store token as it's in HTTP-only cookie
       return response.data;
     } catch (error) {
       console.error('Login Error:', error);
@@ -96,7 +100,7 @@ const authMethods = {
     }
   },
   
-  // Get authenticated user info
+  // Get authenticated user info - uses cookie auth automatically
   getUser: async () => {
     try {
       const response = await apiClient.get('/auth/user');
@@ -107,19 +111,22 @@ const authMethods = {
     }
   },
   
-  // Verify token validity
-  verifyToken: async (token) => {
+  // Logout - will clear the auth cookie on the server
+  logout: async () => {
     try {
-      const response = await apiClient.post('/auth/verify-token', { token });
-      return response.data;
+      await apiClient.get('/auth/logout');
+      localStorage.removeItem(AUTH.USER_KEY);
+      
+      // Redirect to login page
+      window.location.href = '/login';
     } catch (error) {
-      console.error('Token Verification Error:', error.response?.data || error.message);
-      throw error;
+      console.error('Logout Error:', error);
+      // Still redirect even if there's an error
+      window.location.href = '/login';
     }
   },
   
   // Request password reset
-// Inside api.js -> authMethods object
   forgotPassword: async (email) => {
     try {
       console.log(`API: Sending forgot password request for email: ${email}`);
@@ -143,47 +150,14 @@ const authMethods = {
     }
   },
   
-  // Log out (client-side)
-  logout: () => {
-    localStorage.removeItem(AUTH.TOKEN_KEY);
-    localStorage.removeItem(AUTH.USER_KEY);
-    // Remove token from headers
-    setAuthToken(null);
-    // Redirect to login page
-    window.location.href = '/login';
-  },
-  
   // Social login URLs - using URL from env vars
   socialLogin: {
     google: `${BASE_URL}/api/auth/google`,
     github: `${BASE_URL}/api/auth/github`
-  },
-  
-  // Process OAuth callback
-  processOAuthCallback: () => {
-    console.log("API: Processing OAuth callback");
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    const error = urlParams.get('error');
-    
-    if (error) {
-      console.error('API: OAuth Error:', decodeURIComponent(error));
-      return null;
-    }
-    
-    if (token) {
-      console.log("API: OAuth token received, storing");
-      localStorage.setItem(AUTH.TOKEN_KEY, token);
-      setAuthToken(token);
-      return token;
-    }
-    
-    console.warn("API: No token found in OAuth callback");
-    return null;
   }
 };
 
-// Receipt API calls
+// Receipt API calls - no changes needed as they'll use the cookie auth automatically
 const receiptMethods = {
   // Upload single receipt
   uploadReceipt: async (formData) => {
@@ -259,15 +233,9 @@ const receiptMethods = {
 
 // Export API
 const api = {
-  setAuthToken,
+  setAuthToken, // Keep for backward compatibility
   auth: authMethods,
   receipts: receiptMethods
 };
-
-// Initialize token after api object is fully defined
-const storedToken = localStorage.getItem(AUTH.TOKEN_KEY);
-if (storedToken) {
-  setAuthToken(storedToken);
-}
 
 export default api;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { toast } from 'react-toastify';
-//import { FcGoogle } from 'react-icons/fc';
+import { FcGoogle } from 'react-icons/fc';
 import { FaGithub, FaEye, FaEyeSlash } from 'react-icons/fa';
 import { AuthContext } from '../../context/AuthContext';
 import config from '../../config';
@@ -18,10 +18,10 @@ const AUTH = config?.AUTH || {
 };
 
 // Social login URLs
-// const SOCIAL_LOGIN = {
-//   google: `${API_URL}/api/auth/google`,
-//   github: `${API_URL}/api/auth/github`
-// };
+const SOCIAL_LOGIN = {
+  google: `${API_URL}/api/auth/google`,
+  github: `${API_URL}/api/auth/github`
+};
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -111,20 +111,20 @@ const Login = () => {
     }
   };
 
-  // const handleSocialLogin = (provider) => {
-  //   // Store the intended redirect path before navigating away
-  //   sessionStorage.setItem('redirectAfterLogin', from);
+  const handleSocialLogin = (provider) => {
+    // Store the intended redirect path before navigating away
+    sessionStorage.setItem('redirectAfterLogin', from);
     
-  //   // Save form data in case user returns without completing social login
-  //   if (formData.email) {
-  //     sessionStorage.setItem('loginEmail', formData.email);
-  //   }
+    // Save form data in case user returns without completing social login
+    if (formData.email) {
+      sessionStorage.setItem('loginEmail', formData.email);
+    }
     
-  //   console.log(`Login: Starting ${provider} social login`);
-  //   console.log("Login: Storing redirect path:", from);
+    console.log(`Login: Starting ${provider} social login`);
+    console.log("Login: Storing redirect path:", from);
     
-  //   window.location.href = SOCIAL_LOGIN[provider];
-  // };
+    window.location.href = SOCIAL_LOGIN[provider];
+  };
 
   return (
     <div className="login-container">
@@ -198,7 +198,7 @@ const Login = () => {
           </button>
         </form>
 
-        {/* <div className="social-login-divider">
+        <div className="social-login-divider">
           <span>or continue with</span>
         </div>
 
@@ -221,7 +221,7 @@ const Login = () => {
             <FaGithub />
             <span>GitHub</span>
           </button>
-        </div> */}
+        </div>
 
         <div className="signup-prompt">
           <p>

@@ -28,6 +28,16 @@ const UserSchema = new mongoose.Schema({
   avatar: {
     type: String
   },
+  authMethods: {
+    type: [String],
+    validate: {
+      validator: function(values) {
+        return values.every(value => ['local', 'google', 'github'].includes(value));
+      },
+      message: props => `${props.value} is not a valid authentication method`
+    },
+    default: []
+  },
   resetPasswordToken: {
     type: String
   },

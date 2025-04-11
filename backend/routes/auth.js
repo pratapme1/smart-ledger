@@ -11,6 +11,13 @@ const transporter = require('../config/email');
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET;
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+
+// Enhanced logging for social login debugging
+console.log('Auth routes initialized with:');
+console.log(`- FRONTEND_URL: ${FRONTEND_URL}`);
+console.log(`- Google callback URL: ${process.env.GOOGLE_CALLBACK_URL || '/api/auth/google/callback'}`);
+console.log(`- GitHub callback URL: ${process.env.GITHUB_CALLBACK_URL || '/api/auth/github/callback'}`);
 
 // Generate JWT token
 const generateToken = (user) => {
@@ -21,10 +28,24 @@ const generateToken = (user) => {
   );
 };
 
+// Function to set JWT token as HTTP-only cookie
+const setTokenCookie = (res, token) => {
+  res.cookie('auth_token', token, {
+    httpOnly: true,
+    secure: NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    signed: true
+  });
+};
+
 // Register new user
 router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
+    
+    // Don't log the password
+    console.log(`Registration attempt for: ${email}`);
     
     // Check if user exists
     let user = await User.findOne({ email });
@@ -45,9 +66,12 @@ router.post('/register', async (req, res) => {
     // Generate token
     const token = generateToken(user);
     
-    // Return token and user info
+    // Set token as HTTP-only cookie
+    setTokenCookie(res, token);
+    
+    // Return user info (but not the token in the response body)
     res.json({
-      token,
+      success: true,
       user: {
         id: user._id,
         name: user.name,
@@ -60,6 +84,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Login user
 // Login user
 router.post('/login', async (req, res) => {
   try {
@@ -75,12 +100,8 @@ router.post('/login', async (req, res) => {
     
     console.log(`User found with ID: ${user._id}`);
     
-    // Log the stored hash for debugging (just show part of it for security)
-    console.log(`Stored password hash: ${user.password ? user.password.substring(0, 10) + '...' : 'undefined'}`);
-    
-    // Check if password is correct
+    // Check if password is correct - don't log password details
     const isMatch = await bcrypt.compare(password, user.password);
-    console.log(`Password match result: ${isMatch}`);
     
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -89,9 +110,13 @@ router.post('/login', async (req, res) => {
     // Generate token
     const token = generateToken(user);
     
-    // Return token and user info
+    // Set JWT as HTTP-only cookie
+    setTokenCookie(res, token);
+    
+    // ALSO return token in response body for backward compatibility
     res.json({
-      token,
+      success: true,
+      token, // Include token here
       user: {
         id: user._id,
         name: user.name,
@@ -104,16 +129,17 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-// Get authenticated user
+// Get authenticated user - Uses passport JWT strategy that now checks for token in cookies
 router.get('/user', passport.authenticate('jwt', { session: false }), (req, res) => {
+  console.log('GET /auth/user - Returning user data for:', req.user.email);
   res.json({ user: req.user });
 });
 
 // Verify token
 router.post('/verify-token', async (req, res) => {
   try {
-    const { token } = req.body;
+    // Get token from signed cookies
+    const token = req.signedCookies.auth_token || req.body.token;
     
     if (!token) {
       return res.status(400).json({ message: 'No token provided' });
@@ -212,7 +238,7 @@ router.post('/reset-password/:token', async (req, res) => {
     const { password } = req.body;
     const { token } = req.params;
     
-    console.log('Reset attempt with token:', token);
+    console.log('Reset attempt with token:', token.substring(0, 6) + '...');
     
     // Hash the received token to compare with stored hashed token
     const hashedToken = crypto
@@ -220,7 +246,7 @@ router.post('/reset-password/:token', async (req, res) => {
       .update(token)
       .digest('hex');
     
-    console.log('Looking for user with hashed token:', hashedToken);
+    console.log('Looking for user with hashed token');
     
     // Find user with valid token (using the hashed version)
     const user = await User.findOne({
@@ -253,68 +279,94 @@ router.post('/reset-password/:token', async (req, res) => {
   }
 });
 
+// Logout route to clear the auth cookie
+router.get('/logout', (req, res) => {
+  res.clearCookie('auth_token');
+  res.json({ success: true, message: 'Logged out successfully' });
+});
+
 // SOCIAL LOGIN ROUTES
 
 // Google OAuth routes
-router.get('/google', 
-  passport.authenticate('google', { 
-    scope: ['profile', 'email'],
-    session: false 
-  })
-);
+router.get('/google', (req, res, next) => {
+  console.log('Google auth initiated - redirecting to Google');
+  next();
+}, 
+passport.authenticate('google', { 
+  scope: ['profile', 'email'],
+  session: false 
+}));
 
-router.get('/google/callback', 
-  passport.authenticate('google', { 
-    failureRedirect: `${FRONTEND_URL}/oauth/callback?error=${encodeURIComponent('Google authentication failed')}`,
-    session: false 
-  }),
-  (req, res) => {
-    try {
-      // Generate JWT token
-      const token = generateToken(req.user);
-      
-      // Log successful authentication
-      console.log(`✅ Google authentication successful for: ${req.user.email}`);
-      
-      // Redirect to frontend with token - Use consistent OAuth callback path
-      res.redirect(`${FRONTEND_URL}/auth-callback?token=${token}`);
-    } catch (error) {
-      console.error('❌ Error in Google callback:', error);
-      // For both Google and GitHub error cases
-      res.redirect(`${FRONTEND_URL}/auth-callback?error=${encodeURIComponent('Authentication failed')}`);
-    }
+router.get('/google/callback', (req, res, next) => {
+  console.log('Received callback from Google OAuth');
+  next();
+},
+passport.authenticate('google', { 
+  failureRedirect: `${FRONTEND_URL}/auth-callback?error=${encodeURIComponent('Google authentication failed')}`,
+  session: false 
+}),
+(req, res) => {
+  try {
+    // Generate JWT token
+    const token = generateToken(req.user);
+    
+    // Log successful authentication
+    console.log(`✅ Google authentication successful for: ${req.user.email}`);
+    console.log(`✅ User ID: ${req.user._id}`);
+    
+    // Set the token as an HTTP-only cookie
+    setTokenCookie(res, token);
+    
+    // ALSO include token in URL for backward compatibility
+    console.log(`✅ Redirecting to: ${FRONTEND_URL}/auth-callback?token=${token}`);
+    res.redirect(`${FRONTEND_URL}/auth-callback?token=${token}`);
+  } catch (error) {
+    console.error('❌ Error in Google callback:', error);
+    res.redirect(`${FRONTEND_URL}/auth-callback?error=${encodeURIComponent('Authentication failed')}`);
   }
-);
+});
 
+// Do the same for GitHub callback
 // GitHub OAuth routes
-router.get('/github',
-  passport.authenticate('github', { 
-    scope: ['user:email'],
-    session: false 
-  })
-);
+router.get('/github', (req, res, next) => {
+  console.log('GitHub auth initiated - redirecting to GitHub');
+  next();
+},
+passport.authenticate('github', { 
+  scope: ['user:email'],
+  session: false 
+}));
 
-router.get('/github/callback',
-  passport.authenticate('github', { 
-    failureRedirect: `${FRONTEND_URL}/oauth/callback?error=${encodeURIComponent('GitHub authentication failed')}`,
-    session: false 
-  }),
-  (req, res) => {
-    try {
-      // Generate JWT token
-      const token = generateToken(req.user);
-      
-      // Log successful authentication
-      console.log(`✅ GitHub authentication successful for: ${req.user.email}`);
-      
-      // Redirect to frontend with token - Use consistent OAuth callback path
-      res.redirect(`${FRONTEND_URL}/auth-callback?token=${token}`);
-    } catch (error) {
-      console.error('❌ Error in GitHub callback:', error);
-      // For both Google and GitHub error cases
-      res.redirect(`${FRONTEND_URL}/auth-callback?error=${encodeURIComponent('Authentication failed')}`);
-    }
+router.get('/github/callback', (req, res, next) => {
+  console.log('Received callback from GitHub OAuth');
+  next();
+},
+passport.authenticate('github', { 
+  failureRedirect: `${FRONTEND_URL}/auth-callback?error=${encodeURIComponent('GitHub authentication failed')}`,
+  session: false 
+}),
+(req, res) => {
+  try {
+    // Generate JWT token
+    const token = generateToken(req.user);
+    
+    // Log successful authentication
+    console.log(`✅ GitHub authentication successful for: ${req.user.email}`);
+    console.log(`✅ User ID: ${req.user._id}`);
+    
+    // Set the token as an HTTP-only cookie instead of in URL
+    setTokenCookie(res, token);
+    
+    // Store a success flag in the session
+    req.session.authSuccess = true;
+    
+    // Redirect without exposing the token in the URL
+    console.log(`✅ Redirecting to: ${FRONTEND_URL}/auth-callback`);
+    res.redirect(`${FRONTEND_URL}/auth-callback`);
+  } catch (error) {
+    console.error('❌ Error in GitHub callback:', error);
+    res.redirect(`${FRONTEND_URL}/auth-callback?error=${encodeURIComponent('Authentication failed')}`);
   }
-);
+});
 
 module.exports = router;

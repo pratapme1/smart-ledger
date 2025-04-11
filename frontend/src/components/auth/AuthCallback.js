@@ -1,10 +1,17 @@
 // components/auth/AuthCallback.js
-import React, { useEffect, useContext, useState } from 'react';
+import React, { useEffect, useContext, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { AuthContext } from '../../context/AuthContext';
 import api from '../../services/api';
 import config from '../../config';
+
+// Fallback for config.AUTH in case it's undefined
+const AUTH = config?.AUTH || {
+  TOKEN_KEY: 'token',
+  USER_KEY: 'user',
+  REMEMBER_ME_KEY: 'rememberMe'
+};
 
 const AuthCallback = () => {
   const [error, setError] = useState(null);
@@ -12,10 +19,23 @@ const AuthCallback = () => {
   const { handleOAuthCallback } = useContext(AuthContext);
   const navigate = useNavigate();
   
+  // Use useRef to track if callback has been processed
+  const callbackProcessed = useRef(false);
+  
   useEffect(() => {
     const processCallback = async () => {
+      // Prevent multiple executions
+      if (callbackProcessed.current) {
+        console.log("AuthCallback: Already processed, skipping");
+        return;
+      }
+      
+      // Mark as processed immediately
+      callbackProcessed.current = true;
+      
       try {
         console.log("AuthCallback: Processing callback...");
+        console.log("AuthCallback: URL:", window.location.href);
         
         // Get redirect path from session storage or default to wallet
         const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/wallet';
@@ -27,63 +47,99 @@ const AuthCallback = () => {
         const token = urlParams.get('token');
         const errorMsg = urlParams.get('error');
         
+        console.log("AuthCallback: URL params:", {
+          hasToken: !!token,
+          hasError: !!errorMsg
+        });
+        
         // Check for error parameter
         if (errorMsg) {
+          console.error("AuthCallback: Error from OAuth provider:", decodeURIComponent(errorMsg));
           throw new Error(decodeURIComponent(errorMsg));
         }
         
-        // Verify token exists
-        if (!token) {
-          throw new Error('No authentication token received');
-        }
-        
-        console.log("AuthCallback: Token received from URL");
-        
-        // Store token in localStorage directly using config keys
-        localStorage.setItem(config.AUTH.TOKEN_KEY, token);
-        
-        // Set token in API headers
-        if (api.setAuthToken) {
-          api.setAuthToken(token);
+        // If token exists in URL, store it (for backward compatibility)
+        if (token) {
+          console.log("AuthCallback: Token received from URL");
+          localStorage.setItem(AUTH.TOKEN_KEY, token);
+          console.log("AuthCallback: Token stored in localStorage");
+          
+          // Set token in API headers
+          if (api.setAuthToken) {
+            api.setAuthToken(token);
+            console.log("AuthCallback: Token set in API headers");
+          }
+        } else {
+          console.log("AuthCallback: No token in URL, will try cookie-based auth");
         }
         
         try {
-          // Get user data with token
+          // Get user data with token (either from cookie or authorization header)
           console.log("AuthCallback: Fetching user data...");
           const userData = await api.auth.getUser();
           
           if (userData && userData.user) {
-            console.log("AuthCallback: User data received:", userData.user);
-            localStorage.setItem(config.AUTH.USER_KEY, JSON.stringify(userData.user));
+            console.log("AuthCallback: User data received:", {
+              id: userData.user._id,
+              email: userData.user.email
+            });
             
-            // Show success message
-            toast.success('Login successful!');
+            localStorage.setItem(AUTH.USER_KEY, JSON.stringify(userData.user));
+            console.log("AuthCallback: User data stored in localStorage");
+            
+            // Update auth context if needed
+            if (handleOAuthCallback && typeof handleOAuthCallback === 'function') {
+              try {
+                await handleOAuthCallback(token); // Pass token if available
+                console.log("AuthCallback: Auth context updated");
+              } catch (contextError) {
+                console.warn("AuthCallback: Error updating auth context:", contextError);
+                // Continue even if context update fails
+              }
+            }
+            
+            // Show success message ONCE
+            toast.success('Login successful!', {
+              toastId: 'login-success',
+              autoClose: 3000
+            });
+            
+            setProcessingComplete(true);
             
             // DIRECT NAVIGATION - Most reliable method
-            console.log("AuthCallback: Directly navigating to wallet page");
-            window.location.href = '/wallet';
-            return; // Stop further execution
+            console.log("AuthCallback: Will redirect to wallet in 1 second");
+            setTimeout(() => {
+              console.log("AuthCallback: Redirecting to wallet NOW");
+              window.location.href = '/wallet';
+            }, 1000);
+            
           } else {
+            console.error("AuthCallback: User data invalid or empty");
             throw new Error('Failed to get user data');
           }
         } catch (fetchError) {
-          console.error('Error fetching user data:', fetchError);
+          console.error('AuthCallback: Error fetching user data:', fetchError);
+          console.error('AuthCallback: Response:', fetchError.response?.data);
           throw new Error('Failed to get user profile. Please try again.');
         }
       } catch (error) {
         console.error('AuthCallback error:', error);
         setError(error.message || 'Social login failed');
-        toast.error(error.message || 'Social login failed. Please try again.');
         
-        // Redirect to login after error
+        toast.error(error.message || 'Social login failed. Please try again.', {
+          toastId: 'login-error',
+          autoClose: 5000
+        });
+        
         setTimeout(() => {
+          console.log("AuthCallback: Redirecting to login due to error");
           window.location.href = '/login';
         }, 2000);
       }
     };
     
     processCallback();
-  }, [navigate, handleOAuthCallback]);
+  }, []);
   
   // Manual navigation function
   const handleManualRedirect = () => {
