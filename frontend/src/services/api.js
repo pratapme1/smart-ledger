@@ -1,5 +1,3 @@
-// Update your api.js to work with HTTP-only cookies
-
 // src/services/api.js
 import axios from 'axios';
 import config from '../config';
@@ -231,11 +229,221 @@ const receiptMethods = {
   }
 };
 
+// New AI Financial Insights module methods
+const budgetMethods = {
+  // Get budget configuration
+  getBudgetConfig: async () => {
+    try {
+      const response = await apiClient.get('/budget');
+      return response.data;
+    } catch (error) {
+      console.error('Get Budget Config Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Get budget analytics
+  getBudgetAnalytics: async () => {
+    try {
+      const response = await apiClient.get('/budget/analytics');
+      return response.data;
+    } catch (error) {
+      console.error('Get Budget Analytics Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Update budget configuration
+  updateBudgetConfig: async (data) => {
+    try {
+      const response = await apiClient.post('/budget', data);
+      return response.data;
+    } catch (error) {
+      console.error('Update Budget Config Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Delete a budget category
+  deleteBudgetCategory: async (category) => {
+    try {
+      const response = await apiClient.delete(`/budget/${category}`);
+      return response.data;
+    } catch (error) {
+      console.error('Delete Budget Category Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Reset monthly spending
+  resetMonthlySpending: async () => {
+    try {
+      const response = await apiClient.post('/budget/reset');
+      return response.data;
+    } catch (error) {
+      console.error('Reset Monthly Spending Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+};
+
+const insightsMethods = {
+  // Get user insights
+  getUserInsights: async (limit = 20, offset = 0) => {
+    try {
+      const response = await apiClient.get(`/insights?limit=${limit}&offset=${offset}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get User Insights Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Get insights for a specific receipt
+  getReceiptInsights: async (receiptId) => {
+    try {
+      const response = await apiClient.get(`/insights/receipt/${receiptId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get Receipt Insights Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Generate insights for a receipt
+  generateInsightsForReceipt: async (receiptId) => {
+    try {
+      const response = await apiClient.post(`/insights/generate/${receiptId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Generate Receipt Insights Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+};
+
+const digestMethods = {
+  // Get weekly digests
+  getDigests: async (limit = 5) => {
+    try {
+      const response = await apiClient.get(`/digest?limit=${limit}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get Digests Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Get a specific digest
+  getDigest: async (digestId) => {
+    try {
+      const response = await apiClient.get(`/digest/${digestId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get Digest Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Generate a new digest
+  generateDigest: async () => {
+    try {
+      const response = await apiClient.post('/digest/generate');
+      return response.data;
+    } catch (error) {
+      console.error('Generate Digest Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+};
+
+const priceMethods = {
+  // Test route to verify API connection
+  testConnection: async () => {
+    try {
+      console.log('Testing price API connection');
+      const response = await apiClient.get('/price/test');
+      return response.data;
+    } catch (error) {
+      console.error('Price API Test Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Compare prices across merchants
+  comparePrice: async (itemName, price, merchant, category) => {
+    try {
+      console.log('Comparing price for:', { itemName, price, merchant, category });
+      const response = await apiClient.post('/price/compare', {
+        itemName,
+        price,
+        merchant,
+        category
+      }, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Price Comparison Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Get price history for an item
+  getPriceHistory: async (itemName, merchant) => {
+    try {
+      console.log('Fetching price history for:', { itemName, merchant });
+      const response = await apiClient.get('/price/history', {
+        params: { itemName, merchant },
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Get Price History Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Get price trends for a category
+  getCategoryTrends: async (category) => {
+    try {
+      console.log('Fetching category trends for:', category);
+      const response = await apiClient.get('/price/trends', {
+        params: { category },
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Get Category Trends Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+
+  // Get best prices for a category
+  getBestPrices: async (category) => {
+    try {
+      console.log('Fetching best prices for:', category);
+      const response = await apiClient.get('/price/best-prices', {
+        params: { category },
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Get Best Prices Error:', error.response?.data || error.message);
+      throw error;
+    }
+  }
+};
+
 // Export API
 const api = {
   setAuthToken, // Keep for backward compatibility
   auth: authMethods,
-  receipts: receiptMethods
+  receipts: receiptMethods,
+  budget: budgetMethods,
+  insights: insightsMethods,
+  digest: digestMethods,
+  price: priceMethods
 };
 
 export default api;

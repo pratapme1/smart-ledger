@@ -5,16 +5,16 @@ import './Navigation.css';
 const NavigationMenu = ({ isOpen, setIsOpen }) => {
   const location = useLocation();
   const menuRef = useRef(null);
-  
+
   // Handle clicks outside the menu to close it
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target) && 
-          !event.target.closest('.hamburger-button')) {
+      if (menuRef.current && !menuRef.current.contains(event.target) &&
+        !event.target.closest('.hamburger-button')) {
         setIsOpen(false);
       }
     };
-    
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       // Prevent scrolling when menu is open
@@ -23,13 +23,13 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
       // Allow scrolling when menu is closed
       document.body.style.overflow = '';
     }
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.body.style.overflow = '';
     };
   }, [isOpen, setIsOpen]);
-  
+
   // Close menu on ESC key press
   useEffect(() => {
     const handleEscKey = (event) => {
@@ -37,11 +37,11 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
         setIsOpen(false);
       }
     };
-    
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscKey);
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleEscKey);
     };
@@ -52,9 +52,20 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
     if (path === '/wallet' && location.pathname === '/dashboard') {
       return true; // Consider dashboard as wallet for backward compatibility
     }
+    
+    // Check if we're in a sub-route (for budget)
+    if (path === '/budget' && location.pathname.startsWith('/budget/')) {
+      return true;
+    }
+    
+    // Check if we're in a sub-route (for insights)
+    if (path === '/insights' && location.pathname.startsWith('/insights/')) {
+      return true;
+    }
+    
     return location.pathname === path;
   };
-  
+
   return (
     <>
       {/* Backdrop overlay */}
@@ -67,9 +78,10 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
         </div>
         
         <ul className="menu-items">
+          {/* Existing menu items */}
           <li>
-            <Link 
-              to="/wallet" 
+            <Link
+              to="/wallet"
               className={`menu-item ${isActive('/wallet') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
@@ -79,8 +91,8 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
           </li>
           
           <li>
-            <Link 
-              to="/analytics" 
+            <Link
+              to="/analytics"
               className={`menu-item ${isActive('/analytics') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
@@ -89,15 +101,53 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
             </Link>
           </li>
           
-          
           <li>
-            <Link 
-              to="/upload" 
+            <Link
+              to="/upload"
               className={`menu-item ${isActive('/upload') ? 'active' : ''}`}
               onClick={() => setIsOpen(false)}
             >
               <span className="menu-icon">📤</span>
               <span>Upload</span>
+            </Link>
+          </li>
+          
+          {/* Divider for AI Features */}
+          <li className="menu-divider">
+            <div className="divider-label">AI Features</div>
+          </li>
+          
+          {/* New AI Financial Insights Menu Items */}
+          <li>
+            <Link
+              to="/budget"
+              className={`menu-item ${isActive('/budget') ? 'active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="menu-icon">💰</span>
+              <span>Budget Tracker</span>
+            </Link>
+          </li>
+          
+          <li>
+            <Link
+              to="/digest"
+              className={`menu-item ${isActive('/digest') ? 'active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="menu-icon">📈</span>
+              <span>Weekly Digest</span>
+            </Link>
+          </li>
+
+          <li>
+            <Link
+              to="/price-comparison"
+              className={`menu-item ${isActive('/price-comparison') ? 'active' : ''}`}
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="menu-icon">💲</span>
+              <span>Price Comparison</span>
             </Link>
           </li>
         </ul>

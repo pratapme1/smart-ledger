@@ -5,7 +5,11 @@ const ReceiptSchema = new mongoose.Schema({
   fileName: String,
   merchant: String,
   date: Date,
-  category: String,
+  category: {
+    type: String,
+    required: true,
+    default: 'Uncategorized'
+  },
   items: [{ 
     name: String, 
     price: Number,
@@ -21,12 +25,17 @@ const ReceiptSchema = new mongoose.Schema({
   insightProcessingStatus: {
     type: String, 
     enum: ['pending', 'processing', 'completed', 'failed'],
-    default: 'pending'  },
+    default: 'pending'
+  },
   taxAmount: Number,
   subtotalAmount: Number,
   totalAmount: Number,
   paymentMethod: String,
-  currency: { type: String, default: 'USD' },
+  currency: { 
+    type: String, 
+    default: 'INR',
+    required: true
+  },
   currencyEvidence: String,
   currencyConfidence: { type: Number, default: 0 },
   notes: String,

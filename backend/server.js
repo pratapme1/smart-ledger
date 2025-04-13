@@ -51,6 +51,7 @@ const allowedOrigins = [FRONTEND_URL];
 // If we have local development, add localhost origins
 if (NODE_ENV !== 'production') {
   allowedOrigins.push('http://localhost:3000');
+  allowedOrigins.push('http://localhost:8080');
   // Add more origins if needed for local testing
 }
 
@@ -63,8 +64,11 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Check if origin is allowed
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    // Remove trailing slash from origin if present
+    const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    
+    // Check if normalized origin is allowed
+    if (allowedOrigins.includes(normalizedOrigin) || !origin) {
       callback(null, true);
     } else {
       console.warn(`❌ CORS blocked for origin: ${origin}`);
@@ -84,12 +88,19 @@ app.use(cors(corsOptions));
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // If the origin is in our allowed list, set it as the Access-Control-Allow-Origin
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else {
+  if (!origin) {
     // Default to the primary frontend URL if origin isn't in the request
     res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+  } else {
+    // Remove trailing slash from origin if present
+    const normalizedOrigin = origin.endsWith('/') ? origin.slice(0, -1) : origin;
+    
+    // If the normalized origin is in our allowed list, set it as the Access-Control-Allow-Origin
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      res.header('Access-Control-Allow-Origin', FRONTEND_URL);
+    }
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
@@ -186,6 +197,13 @@ app.use('/api', require('./routes/receipts'));
 
 // Add this line to include your new AI routes
 app.use('/api/ai', require('./routes/aiRoutes'));
+
+// Add missing routes from app.js
+// app.use('/api/smart-analysis', require('./routes/smartAnalysis'));
+// app.use('/api/enhanced-insights', require('./routes/enhancedAnalysis'));
+app.use('/api/insights', require('./routes/insights'));
+app.use('/api/budget', require('./routes/budget'));
+app.use('/api/digest', require('./routes/digest'));
 
 // Simple root route for API health check
 app.get('/', (req, res) => {
