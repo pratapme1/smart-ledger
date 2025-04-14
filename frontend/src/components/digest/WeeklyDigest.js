@@ -1,8 +1,8 @@
 // src/components/digest/WeeklyDigest.js
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import { formatCurrency } from '../../utils/formatters';
+import api from '../../services/api';
 import './WeeklyDigest.css';
 
 const WeeklyDigest = () => {
@@ -22,14 +22,21 @@ const WeeklyDigest = () => {
   const fetchDigests = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/digest');
-      setDigests(response.data);
+      setError(null);
+      const response = await api.digest.getDigests();
       
-      // Select the most recent digest by default
-      if (response.data.length > 0 && !selectedDigest) {
-        setSelectedDigest(response.data[0]);
-        // Fetch insights for the selected digest
-        fetchInsightsForDigest(response.data[0]._id);
+      if (response && Array.isArray(response)) {
+        setDigests(response);
+        
+        // Select the most recent digest by default
+        if (response.length > 0 && !selectedDigest) {
+          setSelectedDigest(response[0]);
+          // Fetch insights for the selected digest
+          fetchInsightsForDigest(response[0]._id);
+        }
+      } else {
+        console.warn('Unexpected response format:', response);
+        setError('Invalid response format from server');
       }
     } catch (err) {
       console.error('Error fetching digests:', err);
@@ -43,8 +50,8 @@ const WeeklyDigest = () => {
   // Fetch insights for a specific digest
   const fetchInsightsForDigest = async (digestId) => {
     try {
-      const response = await axios.get(`/api/insights/digest/${digestId}`);
-      setInsights(response.data);
+      const response = await api.digest.getDigestInsights(digestId);
+      setInsights(response);
     } catch (err) {
       console.error('Error fetching digest insights:', err);
       setInsights([]);
@@ -55,16 +62,16 @@ const WeeklyDigest = () => {
   const generateDigest = async () => {
     try {
       setGeneratingDigest(true);
-      const response = await axios.post('/api/digest/generate');
+      const response = await api.digest.generateDigest();
       
-      if (response.data) {
+      if (response) {
         toast.success('Weekly digest generated successfully');
         fetchDigests();
-        setSelectedDigest(response.data);
+        setSelectedDigest(response);
         // Fetch insights for the new digest
-        fetchInsightsForDigest(response.data._id);
+        fetchInsightsForDigest(response._id);
       } else {
-        toast.info(response.data.message);
+        toast.info(response.message);
       }
     } catch (err) {
       console.error('Error generating digest:', err);
@@ -103,11 +110,10 @@ const WeeklyDigest = () => {
 
   if (digests.length === 0) {
     return (
-      <div className="no-digests">
-        <h3>No Weekly Digests</h3>
-        <p>You don't have any weekly financial digests yet.</p>
+      <div className="digest-empty">
+        <h3>No Weekly Digests Available</h3>
+        <p>Generate your first weekly digest to see your spending insights.</p>
         <button 
-          className="generate-digest-btn" 
           onClick={generateDigest}
           disabled={generatingDigest}
         >

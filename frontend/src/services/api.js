@@ -324,9 +324,10 @@ const insightsMethods = {
 
 const digestMethods = {
   // Get weekly digests
-  getDigests: async (limit = 5) => {
+  getDigests: async () => {
     try {
-      const response = await apiClient.get(`/digest?limit=${limit}`);
+      console.log('Fetching digests from:', `${apiBaseUrl}/digest`);
+      const response = await apiClient.get('/digest');
       return response.data;
     } catch (error) {
       console.error('Get Digests Error:', error.response?.data || error.message);
@@ -335,9 +336,10 @@ const digestMethods = {
   },
   
   // Get a specific digest
-  getDigest: async (digestId) => {
+  getDigest: async (id) => {
     try {
-      const response = await apiClient.get(`/digest/${digestId}`);
+      console.log('Fetching digest:', id);
+      const response = await apiClient.get(`/digest/${id}`);
       return response.data;
     } catch (error) {
       console.error('Get Digest Error:', error.response?.data || error.message);
@@ -348,10 +350,23 @@ const digestMethods = {
   // Generate a new digest
   generateDigest: async () => {
     try {
+      console.log('Generating new digest');
       const response = await apiClient.post('/digest/generate');
       return response.data;
     } catch (error) {
       console.error('Generate Digest Error:', error.response?.data || error.message);
+      throw error;
+    }
+  },
+  
+  // Get insights for a digest
+  getDigestInsights: async (digestId) => {
+    try {
+      console.log('Fetching insights for digest:', digestId);
+      const response = await apiClient.get(`/insights/digest/${digestId}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get Digest Insights Error:', error.response?.data || error.message);
       throw error;
     }
   }
