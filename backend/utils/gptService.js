@@ -67,7 +67,7 @@ async function categorizeItem(itemName) {
 /**
  * Generate insight for an item
  */
-async function generateItemInsight({itemName, price, category, marketPrice, isRecurring}) {
+async function generateItemInsight({itemName, price, category, isRecurring}) {
   if (!canMakeRequest()) {
     throw new Error('GPT rate limit exceeded');
   }
@@ -77,10 +77,6 @@ async function generateItemInsight({itemName, price, category, marketPrice, isRe
     
     // Generate a meaningful insight (replace with actual GPT call)
     let insight = `${itemName} in category ${category}.`;
-    
-    if (marketPrice && marketPrice < price) {
-      insight += ` You might find this cheaper elsewhere for around $${marketPrice.toFixed(2)}.`;
-    }
     
     if (isRecurring) {
       insight += ` This appears to be a recurring purchase, consider looking for subscription options.`;

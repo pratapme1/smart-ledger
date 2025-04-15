@@ -19,7 +19,7 @@ const AUTH = config?.AUTH || {
   REMEMBER_ME_KEY: 'rememberMe' 
 };
 
-// Create axios instance - Make sure the baseURL doesn't duplicate /api if it's in the URL
+// Create axios instance
 const apiBaseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}/api`;
 const apiClient = axios.create({
   baseURL: apiBaseUrl,
@@ -27,12 +27,11 @@ const apiClient = axios.create({
   withCredentials: true // Important for cookie-based auth
 });
 
-// We don't need to set auth token in headers anymore since we're using cookies
-// But keep this for compatibility with old code
+// Add auth token to requests
 const setAuthToken = (token) => {
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    console.log("API: Auth token set in headers (for backward compatibility)");
+    console.log("API: Auth token set in headers");
   } else {
     delete apiClient.defaults.headers.common['Authorization'];
     console.log("API: Auth token removed from headers");
@@ -43,24 +42,17 @@ const setAuthToken = (token) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Handle authentication errors
     if (error.response && error.response.status === 401) {
       console.error('API: Authentication error - unauthorized access');
-      
       // Don't automatically logout if on login/register pages
       const path = window.location.pathname;
       if (!path.includes('/login') && !path.includes('/register') && !path.includes('/auth/')) {
         console.log('API: Redirecting to login due to auth error');
-        // Note: No need to remove token from localStorage since we're using cookies
+        localStorage.removeItem(AUTH.TOKEN_KEY);
         localStorage.removeItem(AUTH.USER_KEY);
-        
-        // Redirect with a slight delay to allow for any state updates
-        setTimeout(() => {
-          window.location.href = '/login?expired=true';
-        }, 100);
+        window.location.href = '/login?expired=true';
       }
     }
-    
     return Promise.reject(error);
   }
 );
@@ -373,18 +365,6 @@ const digestMethods = {
 };
 
 const priceMethods = {
-  // Test route to verify API connection
-  testConnection: async () => {
-    try {
-      console.log('Testing price API connection');
-      const response = await apiClient.get('/price/test');
-      return response.data;
-    } catch (error) {
-      console.error('Price API Test Error:', error.response?.data || error.message);
-      throw error;
-    }
-  },
-
   // Compare prices across merchants
   comparePrice: async (itemName, price, merchant, category) => {
     try {
@@ -412,6 +392,7 @@ const priceMethods = {
         params: { itemName, merchant },
         headers: { 'Content-Type': 'application/json' }
       });
+      console.log('Price history response:', response.data);
       return response.data;
     } catch (error) {
       console.error('Get Price History Error:', error.response?.data || error.message);

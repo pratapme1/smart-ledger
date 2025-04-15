@@ -9,14 +9,9 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const receiptRoutes = require('./routes/receipts');
-const smartAnalysisRoutes = require('./routes/smartAnalysis');
-const enhancedAnalysis = require('./routes/enhancedAnalysis');
 const insightsRouter = require('./routes/insights');
 const budgetRouter = require('./routes/budget');
 const digestRouter = require('./routes/digest');
-const priceRoutes = require('./routes/price');
-
-console.log('Price routes imported:', priceRoutes ? 'Yes' : 'No');
 
 // Import receipt processing utilities directly
 const { extractTextWithGPT } = require('./utils/receiptExtractor');
@@ -51,12 +46,9 @@ app.use((req, res, next) => {
 console.log('Registering routes...');
 app.use('/api/auth', authRoutes);
 app.use('/api/receipts', receiptRoutes);
-app.use('/api/smart-analysis', smartAnalysisRoutes);
-app.use('/api/enhanced-insights', enhancedAnalysis);
 app.use('/api/insights', insightsRouter);
 app.use('/api/budget', budgetRouter);
 app.use('/api/digest', digestRouter);
-app.use('/api/price', priceRoutes);
 console.log('Routes registered successfully');
 
 // Error handling middleware
@@ -65,7 +57,7 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// 404 handler
+// 404 handler - MUST be after all routes
 app.use((req, res) => {
   console.log(`404: ${req.method} ${req.path}`);
   res.status(404).json({ message: 'Route not found' });

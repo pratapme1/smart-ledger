@@ -191,12 +191,11 @@ require('./config/passport')(passport);
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-
-// Mount receipt routes under /api prefix
 app.use('/api', require('./routes/receipts'));
-
-// Add this line to include your new AI routes
 app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/insights', require('./routes/insights'));
+app.use('/api/budget', require('./routes/budget'));
+app.use('/api/digest', require('./routes/digest'));
 
 // Add missing routes from app.js
 // app.use('/api/smart-analysis', require('./routes/smartAnalysis'));

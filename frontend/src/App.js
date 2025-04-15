@@ -1,5 +1,5 @@
-import { useState, useEffect, useContext } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
+import { useState, useEffect, useContext, useCallback } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -25,7 +25,6 @@ import BudgetTracker from './components/budget/BudgetTracker';
 import BudgetForm from './components/budget/BudgetForm';
 import WeeklyDigest from './components/digest/WeeklyDigest';
 import ReceiptInsights from './components/insights/ReceiptInsights';
-import PriceComparison from './components/price/PriceComparison';
 
 // Auth Components and Context
 import { AuthProvider, AuthContext } from './context/AuthContext';
@@ -65,17 +64,7 @@ function MainApp() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchReceipts();
-    } else {
-      // Clear receipts when not authenticated
-      setReceipts([]);
-      setLoading(false);
-    }
-  }, [refreshTrigger, isAuthenticated, user]);
-
-  const fetchReceipts = async () => {
+  const fetchReceipts = useCallback(async () => {
     if (!isAuthenticated) {
       setReceipts([]);
       setLoading(false);
@@ -101,7 +90,17 @@ function MainApp() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAuthenticated, logout]);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchReceipts();
+    } else {
+      // Clear receipts when not authenticated
+      setReceipts([]);
+      setLoading(false);
+    }
+  }, [refreshTrigger, isAuthenticated, user, fetchReceipts]);
 
   const handleUpload = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -190,7 +189,6 @@ function MainApp() {
             <Route path="/budget/config" element={<BudgetForm />} />
             <Route path="/digest" element={<WeeklyDigest />} />
             <Route path="/insights/receipt/:receiptId" element={<ReceiptInsights />} />
-            <Route path="/price-comparison" element={<PriceComparison />} />
           </Route>
 
           {/* Default Route - Redirect to wallet if authenticated, otherwise login */}

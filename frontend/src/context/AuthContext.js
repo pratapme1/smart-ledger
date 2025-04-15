@@ -35,8 +35,8 @@ export const AuthProvider = ({ children }) => {
           storedUserExists: !!storedUser,
           tokenKey: AUTH.TOKEN_KEY,
           userKey: AUTH.USER_KEY,
-          apiUrl: config?.API_URL, // Log API URL for debugging
-          baseUrl: config?.BASE_URL  // Log BASE URL for debugging
+          apiUrl: config?.API_URL,
+          baseUrl: config?.BASE_URL
         });
         
         if (!token) {
@@ -49,48 +49,27 @@ export const AuthProvider = ({ children }) => {
         // Set token in API headers
         api.setAuthToken(token);
         
-        // Set authenticated state from localStorage first for faster UI response
-        if (storedUser) {
-          try {
-            const parsedUser = JSON.parse(storedUser);
-            setUser(parsedUser);
-            setIsAuthenticated(true);
-            console.log("Set initial auth state from localStorage:", { user: parsedUser.email });
-          } catch (e) {
-            console.error("Error parsing stored user:", e);
-          }
-        }
-        
-        // Verify with server regardless of stored data
+        // Try to get user info from API
         try {
-          console.log("Verifying token with server...");
-          const userData = await api.auth.getUser();
-          
-          if (userData && userData.user) {
-            console.log("Server verification successful:", userData.user);
-            setUser(userData.user);
-            setIsAuthenticated(true);
-            localStorage.setItem(AUTH.USER_KEY, JSON.stringify(userData.user));
-          } else {
-            console.error("Server returned invalid user data");
-            throw new Error('Invalid user data from server');
-          }
+          const response = await api.auth.getUser();
+          setUser(response.user);
+          setIsAuthenticated(true);
         } catch (error) {
-          console.error('Authentication verification failed:', error);
-          
-          // Only clear auth data if it's an authentication error (401)
-          if (error.response && error.response.status === 401) {
-            console.log("Clearing invalid auth data due to 401");
-            localStorage.removeItem(AUTH.TOKEN_KEY);
-            localStorage.removeItem(AUTH.USER_KEY);
-            setUser(null);
-            setIsAuthenticated(false);
+          console.error('Auth check error:', error);
+          // If API call fails, use stored user data
+          if (storedUser) {
+            setUser(JSON.parse(storedUser));
+            setIsAuthenticated(true);
           } else {
-            // For other errors (e.g., network), keep using localStorage data
-            console.log("Keeping localStorage auth data due to non-401 error");
-            // We already set the state from localStorage above
+            setIsAuthenticated(false);
+            setUser(null);
           }
         }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        setError(error.message);
+        setIsAuthenticated(false);
+        setUser(null);
       } finally {
         setLoading(false);
       }

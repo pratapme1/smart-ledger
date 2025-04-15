@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { Receipt, Clock, Filter, Trash2, FileText, Search, CreditCard, AlertTriangle, ChevronDown, ChevronUp, Check, Lock } from 'lucide-react';
+import { Receipt, Clock, Filter, Trash2, FileText, Search, AlertTriangle, ChevronDown, ChevronUp, Check, Lock } from 'lucide-react';
 import { getCurrencySymbol } from '../utils/currencyUtils';
 import { AuthContext } from '../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -137,7 +137,7 @@ const ReceiptCard = ({ receipt, index, onDelete, isAuthenticated }) => {
 };
 
 export default function ReceiptList({ receipts, loading, error, onReceiptDeleted }) {
-  const { isAuthenticated, user, getAuthHeaders } = useContext(AuthContext);
+  const { isAuthenticated } = useContext(AuthContext);
   const [filteredReceipts, setFilteredReceipts] = useState([]);
   const [sortOption, setSortOption] = useState('date-desc');
   const [searchQuery, setSearchQuery] = useState('');

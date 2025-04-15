@@ -1,11 +1,8 @@
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
-//import { FcGoogle } from 'react-icons/fc';
-import { FaGithub } from 'react-icons/fa';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { toast } from 'react-toastify';
-import api from '../../services/api';
 import './Register.css';
 
 const Register = () => {
@@ -77,12 +74,6 @@ const Register = () => {
       toast.error(err.message || 'Registration failed');
     }
   };
-  
-  // // const handleSocialLogin = (provider) => {
-  // //   window.location.href = provider === 'google' 
-  // //     ? api.auth.socialLogin.google 
-  // //     : api.auth.socialLogin.github;
-  // };
   
   return (
     <div className="register-container">
@@ -185,30 +176,6 @@ const Register = () => {
               'Create Account'
             )}
           </button>
-          
-          {/* <div className="social-login-divider">
-            <span>Or continue with</span>
-          </div>
-          
-          <div className="social-login-buttons">
-            <button
-              type="button"
-              onClick={() => handleSocialLogin('google')}
-              className="social-button google-button"
-            >
-              <FcGoogle className="social-icon" />
-              <span>Google</span>
-            </button>
-            
-            <button
-              type="button"
-              onClick={() => handleSocialLogin('github')}
-              className="social-button github-button"
-            >
-              <FaGithub className="social-icon" />
-              <span>GitHub</span>
-            </button>
-          </div> */}
         </form>
         
         <div className="sign-in-link">

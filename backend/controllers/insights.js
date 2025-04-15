@@ -3,7 +3,6 @@ const Receipt = require('../models/Receipt');
 const InsightItem = require('../models/InsightItem');
 const BudgetConfig = require('../models/BudgetConfig');
 const gptService = require('../utils/gptService');
-const priceService = require('../utils/priceService');
 const queueService = require('../utils/queueService');
 
 // Local fallback categories if GPT is unavailable
@@ -96,20 +95,16 @@ exports.processReceiptInsights = async (job) => {
         // 1. Categorize item
         const category = await categorizeItem(item.name);
         
-        // 2. Check for price insights
-        const priceInfo = await priceService.comparePrice(item.name, item.price);
-        
-        // 3. Check for recurring purchases
+        // 2. Check for recurring purchases
         const isRecurring = await checkForRecurringPurchase(userId, item.name);
         
-        // 4. Generate GPT insight if possible
+        // 3. Generate GPT insight if possible
         let gptInsight = null;
         try {
           gptInsight = await gptService.generateItemInsight({
             itemName: item.name,
             price: item.price,
             category,
-            marketPrice: priceInfo?.marketPrice,
             isRecurring
           });
         } catch (gptError) {
@@ -118,39 +113,33 @@ exports.processReceiptInsights = async (job) => {
           gptInsight = generateFallbackInsight({
             itemName: item.name,
             price: item.price,
-            marketPrice: priceInfo?.marketPrice,
-            savings: priceInfo?.savings,
             isRecurring
           });
         }
         
-        // 5. Update item with gathered insights
+        // 4. Update item with gathered insights
         const updatedItem = {
           ...item,
           category,
           isRecurring,
-          marketPrice: priceInfo?.marketPrice || null,
-          savings: priceInfo?.savings || 0,
           gptInsight
         };
         
         updatedItems.push(updatedItem);
         
-        // 6. Create insight item record
+        // 5. Create insight item record
         await InsightItem.create({
           userId,
           itemName: item.name,
           category,
           detectedPrice: item.price,
-          matchedMarketPrice: priceInfo?.marketPrice || null,
           receiptId,
-          savings: priceInfo?.savings || 0,
           insightText: gptInsight,
           isRecurring,
           processingStatus: 'completed'
         });
         
-        // 7. Update budget if needed
+        // 6. Update budget if needed
         await updateBudgetForCategory(userId, category, item.price);
         
       } catch (itemError) {
@@ -295,11 +284,7 @@ async function updateBudgetForCategory(userId, category, amount) {
 /**
  * Generate fallback insight when GPT is unavailable
  */
-function generateFallbackInsight({itemName, price, marketPrice, savings, isRecurring}) {
-  if (marketPrice && savings > 0) {
-    return `You paid ${price} for ${itemName}. Current market price is ${marketPrice}, with potential savings of ${savings}.`;
-  }
-  
+function generateFallbackInsight({itemName, price, isRecurring}) {
   if (isRecurring) {
     return `${itemName} appears to be a recurring purchase. Consider checking for bulk discounts or subscription options.`;
   }

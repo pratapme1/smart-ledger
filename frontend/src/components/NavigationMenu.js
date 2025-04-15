@@ -139,17 +139,6 @@ const NavigationMenu = ({ isOpen, setIsOpen }) => {
               <span>Weekly Digest</span>
             </Link>
           </li>
-
-          <li>
-            <Link
-              to="/price-comparison"
-              className={`menu-item ${isActive('/price-comparison') ? 'active' : ''}`}
-              onClick={() => setIsOpen(false)}
-            >
-              <span className="menu-icon">💲</span>
-              <span>Price Comparison</span>
-            </Link>
-          </li>
         </ul>
       </nav>
     </>
