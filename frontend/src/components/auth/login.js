@@ -24,6 +24,7 @@ const SOCIAL_LOGIN = {
 };
 
 const Login = () => {
+  const { isAuthenticated } = useContext(AuthContext);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -34,7 +35,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const { login } = useContext(AuthContext);
   const from = location.state?.from || '/wallet';
 
   const handleChange = (e) => {

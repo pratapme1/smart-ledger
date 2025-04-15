@@ -1,17 +1,19 @@
 import { useState, useContext } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import ProfileMenu from "./ProfileMenu";
 import HamburgerButton from "./HamburgerButton";
 import NavigationMenu from "./NavigationMenu";
 import "./Header.css";
 
-function Header() {
-  const { user } = useContext(AuthContext);
-  const [menuOpen, setMenuOpen] = useState(false);
+const Header = () => {
+  const { isAuthenticated, logout } = useContext(AuthContext);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
+    setIsMenuOpen(!isMenuOpen);
   };
 
   // For authenticated users, show header with hamburger menu
@@ -19,7 +21,7 @@ function Header() {
     <header className="header">
       {/* Left section: Hamburger button */}
       <div className="header-left">
-        <HamburgerButton isOpen={menuOpen} toggleMenu={toggleMenu} />
+        <HamburgerButton isOpen={isMenuOpen} toggleMenu={toggleMenu} />
       </div>
 
       {/* Center section: Logo */}
@@ -35,9 +37,9 @@ function Header() {
       </div>
 
       {/* Navigation Menu */}
-      <NavigationMenu isOpen={menuOpen} setIsOpen={setMenuOpen} />
+      <NavigationMenu isOpen={isMenuOpen} setIsOpen={setIsMenuOpen} />
     </header>
   );
-}
+};
 
 export default Header;

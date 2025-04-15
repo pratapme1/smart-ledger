@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { 
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, 
   CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -29,20 +29,11 @@ const Wallet = ({ receipts, loading, error }) => {
   // Color palette
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a64dff', '#ff6b6b', '#4ecdc4', '#ff9f1c'];
   
-  useEffect(() => {
-    // Skip processing if user is not authenticated
-    if (!isAuthenticated) return;
-    
-    if (!receipts || receipts.length === 0 || loading) return;
-    
-    processWalletData();
-  }, [receipts, loading, filterCategory, filterTimeframe, isAuthenticated]);
-  
-  const processWalletData = () => {
-    if (!receipts || receipts.length === 0) return;
+  const processWalletData = useCallback((data) => {
+    if (!data || data.length === 0) return;
     
     // 1. Apply filters
-    let filteredReceipts = [...receipts];
+    let filteredReceipts = [...data];
     
     // Filter by category if not "all"
     if (filterCategory !== 'all') {
@@ -91,7 +82,7 @@ const Wallet = ({ receipts, loading, error }) => {
     
     // Get this month's receipts
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const thisMonthReceipts = receipts.filter(receipt => {
+    const thisMonthReceipts = data.filter(receipt => {
       const receiptDate = new Date(receipt.date || receipt.uploadedAt);
       return receiptDate >= thisMonthStart;
     });
@@ -99,7 +90,7 @@ const Wallet = ({ receipts, loading, error }) => {
     // Get last month's receipts
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
-    const lastMonthReceipts = receipts.filter(receipt => {
+    const lastMonthReceipts = data.filter(receipt => {
       const receiptDate = new Date(receipt.date || receipt.uploadedAt);
       return receiptDate >= lastMonthStart && receiptDate <= lastMonthEnd;
     });
@@ -150,7 +141,7 @@ const Wallet = ({ receipts, loading, error }) => {
     
     // 4. Get monthly comparison data
     const monthlyData = {};
-    receipts.forEach(receipt => {
+    data.forEach(receipt => {
       const receiptDate = new Date(receipt.date || receipt.uploadedAt);
       const monthKey = `${receiptDate.toLocaleString('default', { month: 'short' })} ${receiptDate.getFullYear()}`;
       
@@ -196,12 +187,21 @@ const Wallet = ({ receipts, loading, error }) => {
       receiptCount: filteredReceipts.length,
       primaryCurrency: commonCurrency
     });
-  };
+  }, [filterCategory, filterTimeframe]);
+  
+  // Add useEffect to call processWalletData when dependencies change
+  useEffect(() => {
+    if (receipts && receipts.length > 0) {
+      processWalletData(receipts);
+    }
+  }, [receipts, processWalletData, filterCategory, filterTimeframe]);
   
   // Extract all categories for filter dropdown
-  const categories = ['all', ...new Set(receipts
-    .filter(r => r.category)
-    .map(r => r.category))];
+  const categories = receipts && receipts.length > 0 
+    ? ['all', ...new Set(receipts
+        .filter(r => r.category)
+        .map(r => r.category))]
+    : ['all'];
   
   // Format date for display
   const formatDate = (dateString) => {

@@ -57,6 +57,14 @@ apiClient.interceptors.response.use(
   }
 );
 
+const handleResponse = (response) => {
+  if (response.status === 401) {
+    // Handle unauthorized access
+    return Promise.reject(new Error('Unauthorized access'));
+  }
+  return response.data;
+};
+
 // Authentication API calls
 const authMethods = {
   // Register new user

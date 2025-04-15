@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -41,17 +41,8 @@ const Analytics = ({ receipts, loading }) => {
   // Custom color palette for charts
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a64dff', '#ff6b6b', '#4ecdc4', '#ff9f1c'];
   
-  useEffect(() => {
-    if (!shouldRender) return;
-    if (!isAuthenticated) return; // Don't process data if not authenticated
-    if (!receipts || receipts.length === 0) return;
-    
-    // Process receipt data for analytics
-    processReceiptData();
-  }, [receipts, timeRange, shouldRender, loading, isAuthenticated]);
-  
-  const processReceiptData = () => {
-    if (!receipts || receipts.length === 0) return;
+  const processReceiptData = useCallback((data) => {
+    if (!data || data.length === 0) return;
     
     // Get current date and set boundary dates based on selected time range
     const now = new Date();
@@ -77,7 +68,7 @@ const Analytics = ({ receipts, loading }) => {
     }
     
     // Filter relevant receipts based on date range
-    const relevantReceipts = receipts.filter(receipt => {
+    const relevantReceipts = data.filter(receipt => {
       if (!receipt.date && !receipt.uploadedAt) {
         console.warn("Receipt missing date fields:", receipt);
         return true; // Include receipts with missing dates
@@ -223,7 +214,13 @@ const Analytics = ({ receipts, loading }) => {
       receiptCount: receiptsWithTotals.length,
       primaryCurrency: commonCurrency
     });
-  };
+  }, [timeRange, categoryData]);
+
+  useEffect(() => {
+    if (receipts && receipts.length > 0) {
+      processReceiptData(receipts);
+    }
+  }, [receipts, processReceiptData]);
   
   // Get the currency symbol for the primary currency
   const primaryCurrencySymbol = getCurrencySymbol(summaryStats.primaryCurrency);

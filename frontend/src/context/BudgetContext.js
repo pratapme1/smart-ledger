@@ -75,7 +75,11 @@ export const BudgetProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [isAuthenticated]);
+  }, []);
+
+  useEffect(() => {
+    fetchBudgetAnalytics();
+  }, [fetchBudgetAnalytics]);
 
   // Update budget configuration
   const updateBudgetConfig = async (categoryBudgets, notificationsEnabled) => {

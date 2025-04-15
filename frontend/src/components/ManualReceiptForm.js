@@ -1,9 +1,11 @@
 import React, { useState, useContext } from 'react';
 import { 
   PencilLine, Calendar, DollarSign, Store, Tag, 
-  Plus, Minus, CreditCard, Receipt, X, Info, AlertTriangle
+  Plus, CreditCard, Receipt, X, Info, AlertTriangle
 } from 'lucide-react';
 import { AuthContext } from '../context/AuthContext';
+import { toast } from 'react-toastify';
+import '../styles.css';
 
 const ManualReceiptForm = ({ onSubmit, categories = [] }) => {
   const { isAuthenticated } = useContext(AuthContext);

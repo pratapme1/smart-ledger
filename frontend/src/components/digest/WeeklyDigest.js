@@ -1,5 +1,5 @@
 // src/components/digest/WeeklyDigest.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { formatCurrency } from '../../utils/formatters';
 import api from '../../services/api';
@@ -13,13 +13,7 @@ const WeeklyDigest = () => {
   const [generatingDigest, setGeneratingDigest] = useState(false);
   const [insights, setInsights] = useState([]);
 
-  // Fetch digests on component mount
-  useEffect(() => {
-    fetchDigests();
-  }, []);
-
-  // Fetch weekly digests
-  const fetchDigests = async () => {
+  const fetchDigests = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -45,7 +39,11 @@ const WeeklyDigest = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchDigests();
+  }, [fetchDigests]);
 
   // Fetch insights for a specific digest
   const fetchInsightsForDigest = async (digestId) => {
