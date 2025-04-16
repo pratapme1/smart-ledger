@@ -8,6 +8,7 @@
     "validate:prod": "node scripts/validate-env.js production",
     "dev": "npm run validate:dev && cross-env NODE_ENV=development nodemon server.js",
     "prod": "npm run validate:prod && cross-env NODE_ENV=production node server.js",
+    "start":"node server.js",
     "proxy": "http://localhost:8080"
   },
   "keywords": [],
